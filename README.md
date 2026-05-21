@@ -64,6 +64,8 @@ npm run test:e2e
 npm test
 ```
 
+`npm run test:e2e` runs the browser UI and integration projects together.
+
 Run by Playwright tag when you need the same filtering used by CI:
 
 ```bash
@@ -71,7 +73,6 @@ npx playwright test --grep @smoke
 npx playwright test --grep @api
 npx playwright test --grep @ui
 npx playwright test --grep @integration
-npx playwright test --grep @e2e
 ```
 
 Recommended pre-commit check:
@@ -111,6 +112,10 @@ Application URL configuration is centralized in `config/appConfig.js`.
 - `BASE_URL` can override the target for local runs and CI.
 - The same helper is used by `playwright.config.ts`, `global-setup.ts`, fixtures, raw `fetch` API tests, and the vacancy bootstrap script.
 
+## Test Plan
+
+Detailed coverage, test strategy, architecture notes, and planned improvements are documented in `TEST_PLAN.md`.
+
 ## CI
 
 The GitHub Actions workflow can be started manually with two inputs: full name and test tag. It creates a fresh vacancy application, writes runtime `.env`, and then runs only the selected tag.
@@ -122,6 +127,7 @@ Available workflow tag choices:
 - `api` - run `@api`.
 - `ui` - run `@ui`.
 - `integration` - run `@integration`.
+
 Required GitHub Secrets:
 
 - `ANALYTICS_BASIC_USER`

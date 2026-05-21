@@ -13,7 +13,7 @@ test.describe('Integration: analytics events', { tag: ['@integration'] }, () => 
     } as const;
 
     await registerPage.register(user);
-    await expect(page).toHaveURL(/dashboard\.html/, { timeout: 10000 });
+    await expect(page).toHaveURL(/dashboard\.html/);
 
     await api.waitForAnalyticsEvent(
       event =>
@@ -31,7 +31,7 @@ test.describe('Integration: analytics events', { tag: ['@integration'] }, () => 
     );
 
     await new DashboardPage(page).logout();
-    await expect(page).toHaveURL(/index\.html/, { timeout: 5000 });
+    await expect(page).toHaveURL(/index\.html/);
 
     await api.waitForAnalyticsEvent(
       event => event.type === 'logout' && event.status === 'success' && event.email === user.email,
@@ -73,7 +73,7 @@ test.describe('Integration: analytics events', { tag: ['@integration'] }, () => 
       expect(failedPasswordResponse.status()).toBeLessThan(500);
 
       await uniqueProfilePage.changePassword('NewPass!456', 'NewPass!456');
-      await expect(uniqueProfilePage.passwordModal).not.toBeVisible({ timeout: 5000 });
+      await expect(uniqueProfilePage.passwordModal).not.toBeVisible();
 
       const tmpFile = createTempAvatar();
       try {
@@ -83,7 +83,7 @@ test.describe('Integration: analytics events', { tag: ['@integration'] }, () => 
       }
 
       await uniqueProfilePage.setAnalyticsConsent(false);
-      await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/, { timeout: 5000 });
+      await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/);
     });
 
     await test.step('verify profile analytics events', async () => {

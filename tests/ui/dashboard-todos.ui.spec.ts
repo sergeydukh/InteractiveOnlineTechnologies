@@ -18,6 +18,6 @@ test.describe('UI: dashboard todos', { tag: ['@ui'] }, () => {
     await expect(uniqueDashboardPage.getTodoTitle(editedTitle)).toHaveText(editedTitle);
 
     await uniqueDashboardPage.deleteTodo(editedTitle);
-    await expect(uniqueDashboardPage.getTodoItem(editedTitle)).not.toBeVisible({ timeout: 5000 });
+    await expect(uniqueDashboardPage.getTodoItem(editedTitle)).not.toBeVisible();
   });
 });

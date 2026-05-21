@@ -69,9 +69,6 @@ jobs:
             integration)
               npx playwright test --grep @integration
               ;;
-            e2e)
-              npx playwright test --grep @e2e
-              ;;
             *)
               echo "Unsupported test_tag: ${{ inputs.test_tag }}"
               exit 1

@@ -11,6 +11,6 @@ test.describe('UI: admin login validation', { tag: ['@ui'] }, () => {
     await admin.login(secrets.adminEmail, 'wrong-admin-password');
 
     await expect(page).not.toHaveURL(/dashboard\.html/);
-    await expect(admin.adminPanel).not.toBeVisible({ timeout: 2000 });
+    await expect(admin.adminPanel).not.toBeVisible();
   });
 });

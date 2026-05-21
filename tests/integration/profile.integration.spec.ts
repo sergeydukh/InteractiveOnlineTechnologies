@@ -5,7 +5,7 @@ test.describe('Integration: profile UI + API', { tag: ['@integration'] }, () => 
     const newName = `Integrated ${Date.now()}`;
 
     await uniqueProfilePage.updateName(newName);
-    await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/, { timeout: 5000 });
+    await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/);
 
     const profile = await api.getProfile(testUser.token);
     expect(profile.user.name).toBe(newName);

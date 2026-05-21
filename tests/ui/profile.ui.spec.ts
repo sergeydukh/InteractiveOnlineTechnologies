@@ -16,7 +16,7 @@ test.describe('UI: profile mutations', { tag: ['@ui'] }, () => {
         gender: '1',
         internalAnalyticsConsent: false,
       });
-      await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/, { timeout: 5000 });
+      await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/);
     });
 
     await test.step('reloads profile with saved values', async () => {
@@ -32,13 +32,13 @@ test.describe('UI: profile mutations', { tag: ['@ui'] }, () => {
   test('validates and changes password', async ({ uniqueProfilePage }) => {
     await test.step('shows inline error for mismatched passwords', async () => {
       await uniqueProfilePage.changePassword('Password1!', 'Password2!', false);
-      await expect(uniqueProfilePage.passwordFormMessage).toBeVisible({ timeout: 3000 });
+      await expect(uniqueProfilePage.passwordFormMessage).toBeVisible();
       await expect(uniqueProfilePage.passwordFormMessage).toHaveText(/Пароли не совпадают/);
     });
 
     await test.step('accepts matching password confirmation', async () => {
       await uniqueProfilePage.changePassword('NewPass!456', 'NewPass!456');
-      await expect(uniqueProfilePage.passwordModal).not.toBeVisible({ timeout: 5000 });
+      await expect(uniqueProfilePage.passwordModal).not.toBeVisible();
     });
   });
 
@@ -51,7 +51,7 @@ test.describe('UI: profile mutations', { tag: ['@ui'] }, () => {
       await expect
         .poll(() => uniqueProfilePage.avatarImage.getAttribute('src'))
         .not.toBe(initialAvatarSrc);
-      await expect(uniqueProfilePage.avatarImage).not.toHaveAttribute('src', /placeholder/, { timeout: 5000 });
+      await expect(uniqueProfilePage.avatarImage).not.toHaveAttribute('src', /placeholder/);
     } finally {
       removeFileIfExists(tmpFile);
     }

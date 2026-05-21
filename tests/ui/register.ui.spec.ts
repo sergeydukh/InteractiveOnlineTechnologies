@@ -14,7 +14,7 @@ test.describe('UI: registration', { tag: ['@ui'] }, () => {
 
     await registerPage.register(user);
 
-    await expect(page).toHaveURL(/dashboard\.html/, { timeout: 10000 });
+    await expect(page).toHaveURL(/dashboard\.html/);
 
     const profilePage = new ProfilePage(page);
     await profilePage.goto();
