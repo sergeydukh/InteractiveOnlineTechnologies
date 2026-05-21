@@ -7,7 +7,7 @@ type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 type ApiRequestOptions = Omit<NonNullable<Parameters<APIRequestContext['fetch']>[1]>, 'method'>;
 
-const RATE_LIMIT_RETRY_DELAYS_MS = [1000, 2000, 5000, 10000];
+const RATE_LIMIT_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000, 30000, 45000];
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

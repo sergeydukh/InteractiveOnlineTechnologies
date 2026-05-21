@@ -8,9 +8,13 @@ import * as path from 'path';
 const BASE_URL = getBaseUrl();
 const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 const AUTH_META_FILE = path.join(__dirname, '.auth', 'user.meta.json');
+const RATE_LIMIT_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000, 30000, 45000];
 
 type AuthMeta = {
   accessKey?: string;
+  user?: ReturnType<typeof createTestUser> & {
+    token: string;
+  };
 };
 
 function readAuthMeta(): AuthMeta {
@@ -21,6 +25,24 @@ function readAuthMeta(): AuthMeta {
   } catch {
     return {};
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRateLimitRetry(url: string, init: RequestInit): Promise<Response> {
+  for (let attempt = 0; attempt <= RATE_LIMIT_RETRY_DELAYS_MS.length; attempt += 1) {
+    const response = await fetch(url, init);
+
+    if (response.status !== 429 || attempt === RATE_LIMIT_RETRY_DELAYS_MS.length) {
+      return response;
+    }
+
+    await delay(RATE_LIMIT_RETRY_DELAYS_MS[attempt]);
+  }
+
+  throw new Error(`[global-setup] Exhausted rate limit retry attempts for ${url}`);
 }
 
 export default async function globalSetup(_config: FullConfig): Promise<void> {
@@ -40,7 +62,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   const user = createTestUser({ name: `Smoke Shared ${Date.now()}` });
 
-  const registerResponse = await fetch(`${BASE_URL}/api/auth/register`, {
+  const registerResponse = await fetchWithRateLimitRetry(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -54,7 +76,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     throw new Error(`[global-setup] Shared user registration failed (${registerResponse.status}): ${body}`);
   }
 
-  const loginResponse = await fetch(`${BASE_URL}/api/auth/login`, {
+  const loginResponse = await fetchWithRateLimitRetry(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,6 +103,6 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   };
 
   fs.writeFileSync(AUTH_FILE, JSON.stringify(storageState, null, 2));
-  fs.writeFileSync(AUTH_META_FILE, JSON.stringify({ accessKey: secrets.accessKey }, null, 2));
+  fs.writeFileSync(AUTH_META_FILE, JSON.stringify({ accessKey: secrets.accessKey, user: { ...user, token } }, null, 2));
   console.log('[global-setup] Auth state saved to', AUTH_FILE);
 }

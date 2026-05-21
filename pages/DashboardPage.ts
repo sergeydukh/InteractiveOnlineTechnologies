@@ -1,5 +1,7 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, Response } from '@playwright/test';
 import { BasePage } from '@pages/BasePage';
+
+const TODO_ACTION_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000];
 
 export class DashboardPage extends BasePage {
   readonly logoutButton: Locator;
@@ -47,12 +49,37 @@ export class DashboardPage extends BasePage {
     await this.page.goto('/dashboard.html');
   }
 
+  private async retryTodoAction(
+    action: () => Promise<void>,
+    predicate: (response: Response) => boolean,
+  ): Promise<Response> {
+    for (let attempt = 0; attempt <= TODO_ACTION_RETRY_DELAYS_MS.length; attempt += 1) {
+      const responsePromise = this.page.waitForResponse(predicate);
+      await action();
+      const response = await responsePromise;
+
+      if (response.ok()) {
+        return response;
+      }
+
+      if (response.status() !== 429 || attempt === TODO_ACTION_RETRY_DELAYS_MS.length) {
+        throw new Error(`UI action API ${response.status()} ${response.url()}: ${await response.text()}`);
+      }
+
+      await this.page.waitForTimeout(TODO_ACTION_RETRY_DELAYS_MS[attempt]);
+    }
+
+    throw new Error('UI action API exhausted retry attempts');
+  }
+
   async addTodo(text: string): Promise<void> {
-    await this.todoInput.fill(text);
-    await Promise.all([
-      this.page.waitForResponse(r => r.url().includes('/api/todos') && r.request().method() === 'POST'),
-      this.addTodoButton.click(),
-    ]);
+    await this.retryTodoAction(
+      async () => {
+        await this.todoInput.fill(text);
+        await this.addTodoButton.click();
+      },
+      r => r.url().includes('/api/todos') && r.request().method() === 'POST',
+    );
   }
 
   async waitForTodoVisible(title: string): Promise<void> {
@@ -69,31 +96,40 @@ export class DashboardPage extends BasePage {
 
   async completeTodo(title: string): Promise<void> {
     const item = this.getTodoItem(title);
-    await Promise.all([
-      this.page.waitForResponse(r => r.url().includes('/api/todos/') && r.request().method() === 'PATCH'),
-      item.getByRole('checkbox').check(),
-    ]);
+    await this.retryTodoAction(
+      () => item.getByRole('checkbox').check(),
+      r => r.url().includes('/api/todos/') && r.request().method() === 'PATCH',
+    );
   }
 
   async deleteTodo(title: string): Promise<void> {
     const deleteBtn = this.page.getByRole('button', { name: `Удалить заметку ${title}` });
-    await deleteBtn.click();
-    await this.deleteTodoModal.waitFor({ state: 'visible' });
-    await Promise.all([
-      this.page.waitForResponse(r => r.url().includes('/api/todos/') && r.request().method() === 'DELETE'),
-      this.confirmDeleteButton.click(),
-    ]);
+    await this.retryTodoAction(
+      async () => {
+        if (!(await this.deleteTodoModal.isVisible())) {
+          await deleteBtn.click();
+          await this.deleteTodoModal.waitFor({ state: 'visible' });
+        }
+        await this.confirmDeleteButton.click();
+      },
+      r => r.url().includes('/api/todos/') && r.request().method() === 'DELETE',
+    );
   }
 
   async editTodo(title: string, newTitle: string): Promise<void> {
     const item = this.getTodoItem(title);
-    await item.getByRole('button', { name: 'Редактировать заметку' }).dblclick();
-    const editInput = this.page.getByLabel('Редактирование заметки и тегов');
-    await editInput.fill(newTitle);
-    await Promise.all([
-      this.page.waitForResponse(r => r.url().includes('/api/todos/') && r.request().method() === 'PATCH'),
-      editInput.press('Enter'),
-    ]);
+    await this.retryTodoAction(
+      async () => {
+        const editInput = this.page.getByLabel('Редактирование заметки и тегов');
+        if (!(await editInput.isVisible())) {
+          await item.getByRole('button', { name: 'Редактировать заметку' }).dblclick();
+          await editInput.waitFor({ state: 'visible' });
+        }
+        await editInput.fill(newTitle);
+        await editInput.press('Enter');
+      },
+      r => r.url().includes('/api/todos/') && r.request().method() === 'PATCH',
+    );
   }
 
   async openTagsSidebar(): Promise<void> {
