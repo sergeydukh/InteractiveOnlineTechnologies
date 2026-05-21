@@ -13,25 +13,27 @@ The suite is split into four practical layers:
 - `ui` - browser checks for registration, login validation, profile mutations, todo lifecycle, tags, and admin login validation.
 - `integration` - mixed UI + API checks where the UI action is verified through API/admin state or analytics events.
 
-For mutation scenarios I use isolated test data: one unique user per test that changes profile, todos, tags, password, or analytics consent. This avoids hidden coupling between tests and keeps each test repeatable regardless of execution order. Smoke tests reuse a cached shared auth state because they are read-only and do not need fresh data.
+The suite uses a hybrid test data strategy. Lightweight scenarios can create unique users or generated entities, while heavier authenticated flows may reuse a cached authenticated user/session created during global setup. This reduces pressure on registration and login endpoints in the shared remote environment.
 
 The target app appears to have auth/rate-limit sensitivity, so the suite currently runs with `workers: 1`. This is a conservative choice for stability during a test assignment. With a proper cleanup API and less shared server state, the suite could be safely parallelized later.
 
-## Data Isolation Tradeoff
+## Data Strategy Tradeoff
 
-The isolated strategy intentionally creates new accounts for most mutating tests. This is safer than using one shared account because shared state would make tests order-dependent: one test could change the password, analytics consent, profile data, todos, or tags needed by another test.
+Full user isolation is the cleanest model for automated tests, but it creates many accounts and puts extra load on auth/register endpoints. In this assignment the application is a shared remote target and does not expose cleanup endpoints, so the suite balances isolation and backend pressure.
 
-The downside is data buildup in the target environment. The current API contract in the task does not describe a way to delete test users or purge their analytics events. Because of that, the suite prefers reliable isolation over manual reuse of a polluted account.
+The current approach keeps data unique where it matters most for assertions: emails, todo titles, tag names, profile names, and analytics event predicates. For heavier authenticated flows, the cached user/session can be reused to reduce the risk of rate limiting. The downside is that these flows are not perfectly isolated, so the suite is kept sequential and avoids relying on static shared data.
 
-If this were a long-lived production-grade suite, I would request or add cleanup endpoints and run teardown after every test.
+If this were a long-lived production-grade suite, I would request or add cleanup endpoints and run teardown after every test. That would allow returning to stricter per-test user isolation without overloading the backend.
+
+I also documented a stricter shared-user alternative in `docs/alternative-shared-user-strategy.md`. I did not implement it as a second test suite because that would duplicate coverage without solving the missing cleanup API problem.
 
 ## Architecture
 
 - `playwright.config.ts` defines projects, reporters, retries, single-worker execution, shared `baseURL`, and the `X-Access-Key` browser/API header.
 - `config/appConfig.js` is the single source for the application URL. It supports `BASE_URL` override for local runs and CI.
 - `utils/secrets.ts` loads secrets from `.env`, legacy `sicret.json`, or environment variables.
-- `global-setup.ts` creates and caches a shared smoke user storage state.
-- `fixtures/index.ts` provides typed fixtures for API client, unique users, page objects, and authenticated browser contexts.
+- `global-setup.ts` creates and caches authenticated storage state.
+- `fixtures/index.ts` provides typed fixtures for API client, authenticated users, page objects, and browser contexts.
 - `pages/*` contains Page Object classes for login, registration, dashboard, profile, and admin screens.
 - `utils/apiClient.ts` wraps common API calls and analytics polling.
 - `utils/testData.ts` generates unique users, emails, todos, tags, and temporary avatar files.
@@ -68,8 +70,7 @@ If this were a long-lived production-grade suite, I would request or add cleanup
 | TC-025 | Integration | Profile UI + API | Profile update through UI is persisted and verified through API. |
 | TC-026 | Integration | Todos UI + API | Todo lifecycle through UI is reflected in API state. |
 | TC-027 | Integration | Admin UI + API | Admin search finds a user created through API. |
-| TC-028 | Integration | Analytics auth flow | UI registration, login, and logout create matching analytics events. |
-| TC-029 | Integration | Analytics mutations | Todo/profile UI mutations create expected analytics events. |
+| TC-028 | Integration | Analytics flow | UI registration/login/logout and todo/profile mutations create expected analytics events. |
 
 ## Why This Coverage
 
@@ -84,19 +85,14 @@ The task does not require exhaustive coverage, so I prioritized user journeys th
 
 ## Known Limitations
 
-- Mutating tests create accounts and do not delete them because no cleanup endpoint is described in the assignment.
+- Some tests create accounts and do not delete them because no cleanup endpoint is described in the assignment.
+- Heavy authenticated flows can reuse cached auth state to reduce backend pressure and avoid rate limiting.
 - Analytics tests depend on eventual event delivery and therefore poll the analytics API.
 - The suite is intentionally single-worker for stability against a shared remote environment.
 - Some UI checks still rely on current Russian/English app copy where the application exposes no better machine-readable state.
 
 ## Future Improvements
-
+- Add ESLint and Prettier to enforce consistent style and catch unused locators/imports before CI.
 - Request or add cleanup API endpoints, for example delete test user by email, delete todos/tags for a user, and purge analytics events by test run ID.
 - Add `afterEach` cleanup in fixtures once cleanup endpoints exist, so every test removes users and related data after execution.
-- Add a test-run namespace or correlation ID to generated users and analytics assertions to simplify cleanup and debugging.
-- Include `BASE_URL` in cached auth metadata so smoke storage state is invalidated when the target environment changes.
-- Make UI network helpers assert `response.ok()` and show clearer errors when the backend returns 4xx/5xx.
-- Remove or use unused Page Object locators to keep page classes lean.
-- Replace locale-dependent native validation text checks with validity-state checks.
-- Revisit parallel execution after reliable cleanup is available.
 - Expand negative coverage for authorization boundaries, profile validation, todo/tag validation, and admin-only access.

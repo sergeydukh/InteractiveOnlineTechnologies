@@ -41,7 +41,7 @@ The bootstrap script writes `ACCESS_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` to
 ## Test Layers
 
 - `tests/smoke` - fast read-only checks for public pages, dashboard, profile, and admin availability.
-- `tests/ui` - browser-level mutation checks with unique users where shared account state must not be changed.
+- `tests/ui` - browser-level mutation checks with generated test data and authenticated user fixtures.
 - `tests/api` - REST checks for auth, profile, todos, tags, admin overview, analytics endpoint access, and `X-Access-Key` protection.
 - `tests/integration` - UI actions verified through application API/admin state and selected analytics events.
 
@@ -60,11 +60,8 @@ npm run test:smoke
 npm run test:ui
 npm run test:api
 npm run test:integration
-npm run test:e2e
 npm test
 ```
-
-`npm run test:e2e` runs the browser UI and integration projects together.
 
 Run by Playwright tag when you need the same filtering used by CI:
 
@@ -136,8 +133,9 @@ Required GitHub Secrets:
 ## Stability Notes
 
 - Shared auth state is generated in `global-setup.ts` and used only for smoke/read-only flows.
-- Mutation tests create unique users through API fixtures.
-- Analytics integration tests poll `/api/analytics/events` and match only events created by the current unique test user.
-- The target app has auth rate limiting, so tests run sequentially with `workers: 1`.
+- The suite uses a hybrid data strategy. Lightweight scenarios can create unique users or generated entities, while heavier authenticated flows may reuse cached auth state to reduce pressure on registration/login endpoints.
+- Mutating tests still generate unique todo, tag, email, and profile values where possible, so assertions do not depend on static data.
+- Analytics integration tests poll `/api/analytics/events` and match only events created by the current generated user/email.
+- The target app has auth/rate-limit sensitivity, so tests run sequentially with `workers: 1`.
 - Browser requests receive `X-Access-Key` through Playwright `extraHTTPHeaders`.
 - Traces, screenshots, and videos are retained on failure.
