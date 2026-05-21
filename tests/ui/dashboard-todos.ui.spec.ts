@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { uniqueTodoTitle } from '../../utils/testData';
 
-test.describe('UI: dashboard todos', () => {
+test.describe('UI: dashboard todos', { tag: ['@ui'] }, () => {
   test('creates, completes, edits and deletes a todo through UI', async ({ uniqueDashboardPage }) => {
     const title = uniqueTodoTitle();
     const editedTitle = `${title} edited`;

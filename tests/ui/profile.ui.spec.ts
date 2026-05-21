@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { createTempAvatar, removeFileIfExists } from '@utils/testData';
 
-test.describe('UI: profile mutations', () => {
+test.describe('UI: profile mutations', { tag: ['@ui'] }, () => {
   test('updates personal profile settings', async ({ uniqueProfilePage, testUser }) => {
     const updatedName = `UI Name ${Date.now()}`;
 

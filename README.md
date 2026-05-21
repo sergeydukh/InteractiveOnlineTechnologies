@@ -45,6 +45,13 @@ The bootstrap script writes `ACCESS_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` to
 - `tests/api` - REST checks for auth, profile, todos, tags, admin overview, analytics endpoint access, and `X-Access-Key` protection.
 - `tests/integration` - UI actions verified through application API/admin state and selected analytics events.
 
+Each layer is tagged for selective runs:
+
+- `@smoke` - smoke specs.
+- `@ui` - UI specs.
+- `@api` - API specs.
+- `@integration` - integration specs.
+
 ## Commands
 
 ```bash
@@ -55,6 +62,16 @@ npm run test:api
 npm run test:integration
 npm run test:e2e
 npm test
+```
+
+Run by Playwright tag when you need the same filtering used by CI:
+
+```bash
+npx playwright test --grep @smoke
+npx playwright test --grep @api
+npx playwright test --grep @ui
+npx playwright test --grep @integration
+npx playwright test --grep @e2e
 ```
 
 Recommended pre-commit check:
@@ -96,8 +113,15 @@ Application URL configuration is centralized in `config/appConfig.js`.
 
 ## CI
 
-The GitHub Actions workflow can be started manually with one input: full name. It creates a fresh vacancy application, writes runtime `.env`, and then runs the suite.
+The GitHub Actions workflow can be started manually with two inputs: full name and test tag. It creates a fresh vacancy application, writes runtime `.env`, and then runs only the selected tag.
 
+Available workflow tag choices:
+
+- `all` - run the full suite.
+- `smoke` - run `@smoke`.
+- `api` - run `@api`.
+- `ui` - run `@ui`.
+- `integration` - run `@integration`.
 Required GitHub Secrets:
 
 - `ANALYTICS_BASIC_USER`

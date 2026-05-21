@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 
-test.describe('Smoke: public auth pages', () => {
+test.describe('Smoke: public auth pages', { tag: '@smoke' }, () => {
   test('login page loads', async ({ loginPage }) => {
     await expect(loginPage.emailInput).toBeVisible();
     await expect(loginPage.passwordInput).toBeVisible();

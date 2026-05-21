@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures';
 import { uniqueEmail } from '@utils/testData';
 import { ProfilePage } from '@pages/ProfilePage';
 
-test.describe('UI: registration', () => {
+test.describe('UI: registration', { tag: ['@ui'] }, () => {
   test('unique user registers through UI and lands on dashboard', async ({ registerPage, page }) => {
     const user = {
       name: 'UI Register User',

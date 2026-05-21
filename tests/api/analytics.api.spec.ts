@@ -40,7 +40,7 @@ function expectAnalyticsEventShape(event: AnalyticsEvent): void {
   }
 }
 
-test.describe('API: analytics events', () => {
+test.describe('API: analytics events', { tag: '@api' }, () => {
   test('returns last 24h events with valid authorization', async ({ api }) => {
     const events = await api.getAnalyticsEvents();
 

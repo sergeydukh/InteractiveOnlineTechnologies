@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 
-test.describe('Smoke: dashboard', () => {
+test.describe('Smoke: dashboard', { tag: '@smoke' }, () => {
   test('shared user opens dashboard', async ({ sharedDashboardPage }) => {
     await expect(sharedDashboardPage.todoInput).toBeVisible();
     await expect(sharedDashboardPage.filterAll).toBeVisible();

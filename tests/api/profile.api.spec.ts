@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 
-test.describe('API: profile', () => {
+test.describe('API: profile', { tag: '@api' }, () => {
   test('reads and updates profile for a unique user', async ({ api, testUser }) => {
     const profile = await api.getProfile(testUser.token);
     expect(profile.user.email).toBe(testUser.email);

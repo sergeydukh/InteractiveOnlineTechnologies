@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { uniqueTagName } from '../../utils/testData';
 
-test.describe('API: tags', () => {
+test.describe('API: tags', { tag: '@api' }, () => {
   test('creates, lists and deletes a tag', async ({ api, testUser }) => {
     const palette = await api.getTagPalette(testUser.token);
     expect(palette.colors.length).toBeGreaterThan(0);

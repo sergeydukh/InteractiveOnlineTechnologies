@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 
-test.describe('Integration: profile UI + API', () => {
+test.describe('Integration: profile UI + API', { tag: ['@integration'] }, () => {
   test('UI profile update is persisted in API state', async ({ api, testUser, uniqueProfilePage }) => {
     const newName = `Integrated ${Date.now()}`;
 

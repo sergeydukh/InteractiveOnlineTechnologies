@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 
-test.describe('UI: login validation', () => {
+test.describe('UI: login validation', { tag: ['@ui'] }, () => {
   test('wrong password keeps user on login page', async ({ loginPage, page }) => {
     const responsePromise = page.waitForResponse(r => r.url().includes('/api/auth/login'));
     await loginPage.login('nonexistent-user@example.com', 'wrong-password-!@#');

@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures';
 import { DashboardPage } from '@pages/DashboardPage';
 import { createTempAvatar, removeFileIfExists, uniqueEmail, uniqueTodoTitle } from '@utils/testData';
 
-test.describe('Integration: analytics events', () => {
+test.describe('Integration: analytics events', { tag: ['@integration'] }, () => {
   test('records register, login and logout events for UI auth flow', async ({ api, registerPage, page }) => {
     const user = {
       name: `Analytics UI ${Date.now()}`,

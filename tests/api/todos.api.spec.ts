@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { uniqueTodoTitle } from '../../utils/testData';
 
-test.describe('API: todos', () => {
+test.describe('API: todos', { tag: '@api' }, () => {
   test('creates, updates, lists and deletes a todo', async ({ api, testUser }) => {
     const title = uniqueTodoTitle();
     const created = await api.createTodo(testUser.token, { title });

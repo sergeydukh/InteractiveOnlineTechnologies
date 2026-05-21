@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { uniqueTagName, uniqueTodoTitle } from '../../utils/testData';
 
-test.describe('UI: dashboard tags', () => {
+test.describe('UI: dashboard tags', { tag: ['@ui'] }, () => {
   test('creates a tag and assigns it to a new todo', async ({ uniqueDashboardPage }) => {
     const tagName = uniqueTagName();
     const title = uniqueTodoTitle();

@@ -1,7 +1,7 @@
 import { test, expect } from '../../fixtures';
 import { createTestUser } from '../../utils/testData';
 
-test.describe('API: auth', () => {
+test.describe('API: auth', { tag: '@api' }, () => {
   test('registers, logs in and logs out a unique user', async ({ api }) => {
     const user = createTestUser();
 

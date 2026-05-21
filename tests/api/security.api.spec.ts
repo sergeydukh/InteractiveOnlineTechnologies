@@ -3,7 +3,7 @@ import { getBaseUrl } from '../../config/appConfig';
 
 const BASE_URL = getBaseUrl();
 
-test.describe('API: security', () => {
+test.describe('API: security', { tag: '@api' }, () => {
   test('protected API rejects auth requests without X-Access-Key', async () => {
     const response = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
