@@ -7,6 +7,12 @@ type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 type ApiRequestOptions = Omit<NonNullable<Parameters<APIRequestContext['fetch']>[1]>, 'method'>;
 
+const RATE_LIMIT_RETRY_DELAYS_MS = [1000, 2000, 5000, 10000];
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export class ApiClient {
   constructor(private readonly request: APIRequestContext) {}
 
@@ -18,16 +24,22 @@ export class ApiClient {
     return { Authorization: getAnalyticsBasicAuthHeader() };
   }
 
-  private async json<T>(response: APIResponse): Promise<T> {
-    if (!response.ok()) {
-      throw new Error(`API ${response.status()} ${response.url()}: ${await response.text()}`);
-    }
-    return response.json() as Promise<T>;
-  }
-
   private async requestJson<T>(method: HttpMethod, url: string, options?: ApiRequestOptions): Promise<T> {
-    const response = await this.request.fetch(url, { ...options, method });
-    return this.json<T>(response);
+    for (let attempt = 0; attempt <= RATE_LIMIT_RETRY_DELAYS_MS.length; attempt += 1) {
+      const response = await this.request.fetch(url, { ...options, method });
+
+      if (response.ok()) {
+        return response.json() as Promise<T>;
+      }
+
+      if (response.status() !== 429 || attempt === RATE_LIMIT_RETRY_DELAYS_MS.length) {
+        throw new Error(`API ${response.status()} ${response.url()}: ${await response.text()}`);
+      }
+
+      await delay(RATE_LIMIT_RETRY_DELAYS_MS[attempt]);
+    }
+
+    throw new Error(`API ${method} ${url}: exhausted retry attempts`);
   }
 
   register(user: TestUserData): Promise<{ message: string }> {

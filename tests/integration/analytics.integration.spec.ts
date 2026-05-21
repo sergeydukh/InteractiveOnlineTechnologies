@@ -4,6 +4,8 @@ import { ProfilePage } from '@pages/ProfilePage';
 import { createTempAvatar, removeFileIfExists, uniqueEmail, uniqueTodoTitle } from '@utils/testData';
 
 test.describe('Integration: analytics events', { tag: ['@integration'] }, () => {
+  test.describe.configure({ timeout: 60000 });
+
   test('records auth, todo and profile mutation events for a unique user', async ({ api, registerPage, page }) => {
     const user = {
       name: `Analytics Mutations ${Date.now()}`,
@@ -59,11 +61,10 @@ test.describe('Integration: analytics events', { tag: ['@integration'] }, () => 
     });
 
     await test.step('perform todo lifecycle', async () => {
-      const dashboardPage = new DashboardPage(page);
-      await dashboardPage.addTodo(title);
-      await dashboardPage.completeTodo(title);
-      await dashboardPage.editTodo(title, editedTitle);
-      await dashboardPage.deleteTodo(editedTitle);
+      const created = await api.createTodo(token, { title });
+      await api.updateTodo(token, created.todo._id, { completed: true });
+      await api.updateTodo(token, created.todo._id, { title: editedTitle });
+      await api.deleteTodo(token, created.todo._id);
     });
 
     await test.step('verify todo analytics events', async () => {

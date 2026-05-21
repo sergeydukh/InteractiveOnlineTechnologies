@@ -2,6 +2,8 @@ import { test, expect } from '@fixtures';
 import { uniqueTodoTitle } from '@utils/testData';
 
 test.describe('Integration: todos UI + API', { tag: ['@integration'] }, () => {
+  test.describe.configure({ timeout: 60000 });
+
   test('UI todo lifecycle is reflected in API state', async ({ api, testUser, uniqueDashboardPage }) => {
     const title = uniqueTodoTitle();
     const editedTitle = `${title} edited`;
