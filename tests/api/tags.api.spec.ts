@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { uniqueTagName } from '../../utils/testData';
+import { test, expect } from '@fixtures';
+import { uniqueTagName } from '@utils/testData';
 
 test.describe('API: tags', { tag: '@api' }, () => {
   test('creates, lists and deletes a tag', async ({ api, testUser }) => {
@@ -19,4 +19,3 @@ test.describe('API: tags', { tag: '@api' }, () => {
     await api.deleteTag(testUser.token, created.tag._id);
   });
 });
-

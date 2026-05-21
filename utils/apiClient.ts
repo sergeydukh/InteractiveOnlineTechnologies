@@ -1,7 +1,7 @@
 import { APIRequestContext, APIResponse, expect } from '@playwright/test';
-import { getAnalyticsBasicAuthHeader, getSecrets } from './secrets';
-import { TestUserData } from './testData';
-import type { AdminUser, AnalyticsEvent, LoginResponse, Pagination, Tag, Todo, User } from './apiTypes';
+import { getAnalyticsBasicAuthHeader, getSecrets } from '@utils/secrets';
+import { TestUserData } from '@utils/testData';
+import type { AdminUser, AnalyticsEvent, LoginResponse, Pagination, Tag, Todo, User } from '@utils/apiTypes';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 

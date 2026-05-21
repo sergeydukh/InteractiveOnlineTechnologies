@@ -1,5 +1,5 @@
 import { Page, Locator } from '@playwright/test';
-import { BasePage } from './BasePage';
+import { BasePage } from '@pages/BasePage';
 
 export class DashboardPage extends BasePage {
   readonly logoutButton: Locator;
@@ -61,6 +61,10 @@ export class DashboardPage extends BasePage {
 
   getTodoItem(title: string): Locator {
     return this.todosList.getByRole('listitem').filter({ hasText: title }).first();
+  }
+
+  getTodoTitle(title: string): Locator {
+    return this.getTodoItem(title).getByRole('button', { name: 'Редактировать заметку' });
   }
 
   async completeTodo(title: string): Promise<void> {

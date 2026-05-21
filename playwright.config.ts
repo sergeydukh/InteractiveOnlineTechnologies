@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-import { getBaseUrl } from './config/appConfig';
-import { getSecrets } from './utils/secrets';
+import { getBaseUrl } from '@config/appConfig';
+import { getSecrets } from '@utils/secrets';
 
 const secrets = getSecrets();
 const isCI = Boolean(process.env.CI);

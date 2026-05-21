@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 import { DashboardPage } from '@pages/DashboardPage';
 import { createTempAvatar, removeFileIfExists, uniqueEmail, uniqueTodoTitle } from '@utils/testData';
 

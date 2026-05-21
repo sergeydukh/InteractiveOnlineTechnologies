@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 import { createTempAvatar, removeFileIfExists } from '@utils/testData';
 
 test.describe('UI: profile mutations', { tag: ['@ui'] }, () => {

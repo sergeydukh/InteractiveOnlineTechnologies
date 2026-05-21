@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('Integration: profile UI + API', { tag: ['@integration'] }, () => {
   test('UI profile update is persisted in API state', async ({ api, testUser, uniqueProfilePage }) => {
@@ -11,4 +11,3 @@ test.describe('Integration: profile UI + API', { tag: ['@integration'] }, () => 
     expect(profile.user.name).toBe(newName);
   });
 });
-

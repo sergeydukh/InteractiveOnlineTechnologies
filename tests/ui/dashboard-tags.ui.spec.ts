@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { uniqueTagName, uniqueTodoTitle } from '../../utils/testData';
+import { test, expect } from '@fixtures';
+import { uniqueTagName, uniqueTodoTitle } from '@utils/testData';
 
 test.describe('UI: dashboard tags', { tag: ['@ui'] }, () => {
   test('creates a tag and assigns it to a new todo', async ({ uniqueDashboardPage }) => {
@@ -15,4 +15,3 @@ test.describe('UI: dashboard tags', { tag: ['@ui'] }, () => {
     await expect(todo.getByText(`#${tagName}`, { exact: false })).toBeVisible();
   });
 });
-

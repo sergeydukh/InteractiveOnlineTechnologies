@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('API: admin', { tag: '@api' }, () => {
   test('admin overview supports search by email', async ({ api, testUser }) => {
@@ -8,4 +8,3 @@ test.describe('API: admin', { tag: '@api' }, () => {
     expect(overview.users.map(user => user.email)).toContain(testUser.email);
   });
 });
-

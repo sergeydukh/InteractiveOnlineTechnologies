@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('Smoke: admin', { tag: '@smoke' }, () => {
   test('admin opens admin panel', async ({ adminPage }) => {
@@ -7,4 +7,3 @@ test.describe('Smoke: admin', { tag: '@smoke' }, () => {
     await expect(adminPage.userSearchInput).toBeVisible();
   });
 });
-

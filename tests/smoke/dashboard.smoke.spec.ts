@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('Smoke: dashboard', { tag: '@smoke' }, () => {
   test('shared user opens dashboard', async ({ sharedDashboardPage }) => {
@@ -8,4 +8,3 @@ test.describe('Smoke: dashboard', { tag: '@smoke' }, () => {
     await expect(sharedDashboardPage.filterCompleted).toBeVisible();
   });
 });
-

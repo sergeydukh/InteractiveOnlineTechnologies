@@ -5,7 +5,7 @@ import { RegisterPage } from '@pages/RegisterPage';
 import { DashboardPage } from '@pages/DashboardPage';
 import { ProfilePage } from '@pages/ProfilePage';
 import { AdminPage } from '@pages/AdminPage';
-import { getBaseUrl } from '../config/appConfig';
+import { getBaseUrl } from '@config/appConfig';
 import { getSecrets } from '@utils/secrets';
 import { ApiClient } from '@utils/apiClient';
 import { createTestUser, TestUserData } from '@utils/testData';
@@ -66,8 +66,6 @@ export const test = base.extend<AppFixtures>({
     await use(rp);
   },
 
-  // Use storageState so each test starts already logged in — avoids repeated
-  // login requests that can trigger server-side rate limiting.
   sharedDashboardPage: async ({ browser }, use) => {
     const secrets = getSecrets();
     const context: BrowserContext = await browser.newContext({
@@ -129,7 +127,6 @@ export const test = base.extend<AppFixtures>({
     const ap = new AdminPage(page);
     await ap.goto();
     await ap.login(adminEmail, adminPassword);
-    await page.locator('[data-ui="admin-panel"]').waitFor({ state: 'visible' });
     await use(ap);
   },
 });

@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { createTestUser } from '../../utils/testData';
+import { test, expect } from '@fixtures';
+import { createTestUser } from '@utils/testData';
 
 test.describe('Integration: admin UI + API data', { tag: ['@integration'] }, () => {
   test('admin search finds a user created through API', async ({ api, adminPage }) => {
@@ -10,4 +10,3 @@ test.describe('Integration: admin UI + API data', { tag: ['@integration'] }, () 
     await expect(adminPage.usersContainer).toContainText(user.email);
   });
 });
-

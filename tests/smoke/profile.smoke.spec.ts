@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('Smoke: profile', { tag: '@smoke' }, () => {
   test('shared user opens profile with readonly email', async ({ sharedProfilePage }) => {
@@ -7,4 +7,3 @@ test.describe('Smoke: profile', { tag: '@smoke' }, () => {
     await expect(sharedProfilePage.emailInput).toHaveAttribute('readonly');
   });
 });
-

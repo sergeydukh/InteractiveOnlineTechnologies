@@ -1,6 +1,6 @@
-import { test, expect } from '../../fixtures';
-import { getSecrets } from '../../utils/secrets';
-import { AdminPage } from '../../pages/AdminPage';
+import { test, expect } from '@fixtures';
+import { getSecrets } from '@utils/secrets';
+import { AdminPage } from '@pages/AdminPage';
 
 test.describe('UI: admin login validation', { tag: ['@ui'] }, () => {
   test('wrong admin password keeps user on login form', async ({ page }) => {

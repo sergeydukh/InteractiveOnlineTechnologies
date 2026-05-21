@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { uniqueTodoTitle } from '../../utils/testData';
+import { test, expect } from '@fixtures';
+import { uniqueTodoTitle } from '@utils/testData';
 
 test.describe('Integration: todos UI + API', { tag: ['@integration'] }, () => {
   test('UI todo lifecycle is reflected in API state', async ({ api, testUser, uniqueDashboardPage }) => {

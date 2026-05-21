@@ -1,6 +1,6 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 import type { AnalyticsEvent } from '@utils/apiTypes';
-import { getBaseUrl } from '../../config/appConfig';
+import { getBaseUrl } from '@config/appConfig';
 import { getAnalyticsBasicAuthHeader } from '@utils/secrets';
 
 const BASE_URL = getBaseUrl();

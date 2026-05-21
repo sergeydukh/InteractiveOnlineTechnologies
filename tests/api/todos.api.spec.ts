@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { uniqueTodoTitle } from '../../utils/testData';
+import { test, expect } from '@fixtures';
+import { uniqueTodoTitle } from '@utils/testData';
 
 test.describe('API: todos', { tag: '@api' }, () => {
   test('creates, updates, lists and deletes a todo', async ({ api, testUser }) => {
@@ -22,4 +22,3 @@ test.describe('API: todos', { tag: '@api' }, () => {
     expect(afterDelete.todos.map(todo => todo._id)).not.toContain(created.todo._id);
   });
 });
-

@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('UI: login validation', { tag: ['@ui'] }, () => {
   test('wrong password keeps user on login page', async ({ loginPage, page }) => {

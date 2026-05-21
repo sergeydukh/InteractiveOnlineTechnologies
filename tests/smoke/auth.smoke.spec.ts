@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('Smoke: public auth pages', { tag: '@smoke' }, () => {
   test('login page loads', async ({ loginPage }) => {
@@ -14,4 +14,3 @@ test.describe('Smoke: public auth pages', { tag: '@smoke' }, () => {
     await expect(registerPage.analyticsConsentCheckbox).toBeVisible();
   });
 });
-

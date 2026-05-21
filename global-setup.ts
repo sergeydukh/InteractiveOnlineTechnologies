@@ -1,7 +1,7 @@
 import { FullConfig } from '@playwright/test';
-import { getBaseUrl } from './config/appConfig';
-import { getSecrets } from './utils/secrets';
-import { createTestUser } from './utils/testData';
+import { getBaseUrl } from '@config/appConfig';
+import { getSecrets } from '@utils/secrets';
+import { createTestUser } from '@utils/testData';
 import * as fs from 'fs';
 import * as path from 'path';
 

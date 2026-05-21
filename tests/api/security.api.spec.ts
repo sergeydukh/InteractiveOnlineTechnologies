@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures';
-import { getBaseUrl } from '../../config/appConfig';
+import { test, expect } from '@fixtures';
+import { getBaseUrl } from '@config/appConfig';
 
 const BASE_URL = getBaseUrl();
 

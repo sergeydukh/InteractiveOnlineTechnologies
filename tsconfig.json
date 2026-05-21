@@ -14,9 +14,10 @@
     "baseUrl": ".",
     "paths": {
       "@config/*": ["config/*"],
+      "@fixtures": ["fixtures/index"],
+      "@fixtures/*": ["fixtures/*"],
       "@pages/*": ["pages/*"],
-      "@utils/*": ["utils/*"],
-      "@fixtures/*": ["fixtures/*"]
+      "@utils/*": ["utils/*"]
     }
   },
   "include": [

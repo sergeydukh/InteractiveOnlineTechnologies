@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures';
+import { test, expect } from '@fixtures';
 
 test.describe('API: profile', { tag: '@api' }, () => {
   test('reads and updates profile for a unique user', async ({ api, testUser }) => {
