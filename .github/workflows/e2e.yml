@@ -1,0 +1,95 @@
+name: Remote E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to execute
+        required: true
+        default: smoke
+        type: choice
+        options: [smoke, api, ui, integration, all]
+      environment:
+        description: Protected GitHub Environment
+        required: true
+        default: qa
+        type: choice
+        options: [qa]
+  workflow_call:
+    inputs:
+      suite:
+        required: false
+        default: smoke
+        type: string
+      environment:
+        required: false
+        default: qa
+        type: string
+    secrets:
+      ACCESS_KEY: { required: true }
+      ADMIN_EMAIL: { required: true }
+      ADMIN_PASSWORD: { required: true }
+      ANALYTICS_BASIC_USER: { required: true }
+      ANALYTICS_BASIC_PASSWORD: { required: true }
+  repository_dispatch:
+    types: [qa-environment-deployed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-e2e-${{ inputs.environment || 'qa' }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ inputs.environment || 'qa' }}
+    env:
+      ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      ANALYTICS_BASIC_USER: ${{ secrets.ANALYTICS_BASIC_USER }}
+      ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
+      TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Select suite
+        id: suite
+        shell: bash
+        env:
+          REQUESTED_SUITE: ${{ inputs.suite }}
+        run: |
+          suite="$REQUESTED_SUITE"
+          if [[ -z "$suite" && "${{ github.event_name }}" == "repository_dispatch" ]]; then suite="all"; fi
+          if [[ -z "$suite" ]]; then suite="smoke"; fi
+          case "$suite" in smoke|api|ui|integration|all) ;; *) exit 2 ;; esac
+          echo "value=$suite" >> "$GITHUB_OUTPUT"
+      - name: Run remote tests
+        shell: bash
+        run: |
+          case "${{ steps.suite.outputs.value }}" in
+            smoke) npm run test:smoke ;;
+            api) npm run test:api ;;
+            ui) npm run test:ui ;;
+            integration) npm run test:integration ;;
+            all) npm test ;;
+          esac
+      - name: Upload reports and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ steps.suite.outputs.value }}-${{ github.run_id }}
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14

@@ -1,31 +1,39 @@
 import { test, expect } from '@fixtures';
+import { expectSuccess } from '@src/test-support/apiAssertions';
 
-test.describe('API: profile', { tag: '@api' }, () => {
-  test('reads and updates profile for a unique user', async ({ api, testUser }) => {
-    const profile = await api.getProfile(testUser.token);
-    expect(profile.user.email).toBe(testUser.email);
+test.describe('Profile API', { tag: '@api' }, () => {
+  test('enforces profile and password contracts', { tag: '@known-defect' }, async ({ api, actor }) => {
+    const initial = await api.profile.get(actor.session);
+    expectSuccess(initial);
+    expect(initial.data.user.email).toBe(actor.user.email);
 
-    const updated = await api.updateProfile(testUser.token, {
-      name: `${testUser.name} API`,
+    const updated = await api.profile.update(actor.session, {
+      name: 'n'.repeat(120),
+      gender: '1',
+      internalAnalyticsConsent: false,
+    });
+    expectSuccess(updated);
+    expect(updated.data.user).toMatchObject({
+      name: 'n'.repeat(120),
       gender: '1',
       internalAnalyticsConsent: false,
     });
 
-    expect(updated.user.name).toContain('API');
-    expect(updated.user.gender).toBe('1');
-    expect(updated.user.internalAnalyticsConsent).toBe(false);
-  });
+    const mismatch = await api.profile.changePassword(actor.session, 'Password1!', 'Password2!');
+    expect(mismatch).toMatchObject({ ok: false, status: 400 });
 
-  test('changes password and rejects mismatched confirmation', async ({ api, testUser }) => {
-    const mismatch = await api.rawChangePassword(testUser.token, 'Password1!', 'Password2!');
-    const mismatchBody = (await mismatch.json()) as { message: string };
+    const tooShort = await api.profile.changePassword(actor.session, '12345');
+    expect(tooShort.ok).toBe(false);
 
-    expect(mismatch.status()).toBeLessThan(500);
-    expect(mismatch.status()).toBe(400);
-    expect(mismatchBody.message).toBe('Passwords do not match');
+    const changed = await api.profile.changePassword(actor.session, 'NewPass!456');
+    expectSuccess(changed);
+    const newLogin = await api.auth.login({ email: actor.user.email, password: 'NewPass!456' });
+    expectSuccess(newLogin);
+    const oldLogin = await api.auth.login({ email: actor.user.email, password: actor.user.password });
+    expect(oldLogin.ok).toBe(false);
 
-    await api.changePassword(testUser.token, 'ApiPass!456');
-    const login = await api.login(testUser.email, 'ApiPass!456');
-    expect(login.token).toBeTruthy();
+    const result = await api.profile.update(actor.session, { name: 'n'.repeat(121) });
+    expectSuccess(result);
+    expect(result.data.user.name).toHaveLength(121);
   });
 });

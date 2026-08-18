@@ -1,13 +1,11 @@
+import 'dotenv/config';
 import { defineConfig, devices } from '@playwright/test';
-import { getBaseUrl } from '@config/appConfig';
-import { getSecrets } from '@utils/secrets';
+import { baseUrl, optionalAccessKey } from './src/config/environment';
 
-const secrets = getSecrets();
 const isCI = Boolean(process.env.CI);
-const baseURL = getBaseUrl();
+const accessKey = optionalAccessKey();
 
 export default defineConfig({
-  globalSetup: './global-setup.ts',
   testDir: './tests',
   fullyParallel: false,
   workers: 1,
@@ -17,38 +15,61 @@ export default defineConfig({
 
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
   ],
 
   use: {
-    baseURL,
+    baseURL: baseUrl(),
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'on-first-retry',
-    extraHTTPHeaders: {
-      'X-Access-Key': secrets.accessKey,
-    },
   },
 
   projects: [
-    {
-      name: 'smoke',
-      testMatch: /.*\.smoke\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'ui',
-      testMatch: /.*\.ui\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
-    },
     {
       name: 'api',
       testMatch: /.*\.api\.spec\.ts/,
     },
     {
+      name: 'smoke',
+      testMatch: /.*\.smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        extraHTTPHeaders: accessKey ? { 'X-Access-Key': accessKey } : undefined,
+      },
+    },
+    {
+      name: 'smoke-firefox',
+      testMatch: /.*\.smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Firefox'],
+        extraHTTPHeaders: accessKey ? { 'X-Access-Key': accessKey } : undefined,
+      },
+    },
+    {
+      name: 'smoke-webkit',
+      testMatch: /.*\.smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Safari'],
+        extraHTTPHeaders: accessKey ? { 'X-Access-Key': accessKey } : undefined,
+      },
+    },
+    {
+      name: 'ui',
+      testMatch: /.*\.ui\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        extraHTTPHeaders: accessKey ? { 'X-Access-Key': accessKey } : undefined,
+      },
+    },
+    {
       name: 'integration',
       testMatch: /.*\.integration\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        extraHTTPHeaders: accessKey ? { 'X-Access-Key': accessKey } : undefined,
+      },
     },
   ],
 

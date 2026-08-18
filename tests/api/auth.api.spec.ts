@@ -1,24 +1,21 @@
 import { test, expect } from '@fixtures';
-import { createTestUser } from '@utils/testData';
+import { expectFailure } from '@src/test-support/apiAssertions';
 
-test.describe('API: auth', { tag: '@api' }, () => {
-  test('registers, logs in and logs out a unique user', async ({ api }) => {
-    const user = createTestUser();
+test.describe('Auth API', { tag: '@api' }, () => {
+  test('registers a user role and rejects invalid credentials and duplicate email', async ({ api, actor }) => {
+    expect(actor.session.role).toBe('user');
+    expect(actor.session.token).toBeTruthy();
 
-    await api.register(user);
-    const login = await api.login(user.email, user.password);
-    expect(login.role).toBe('user');
-    expect(login.token).toBeTruthy();
+    const invalidLogin = await api.auth.login({
+      email: actor.user.email,
+      password: `${actor.user.password}-invalid`,
+    });
+    expectFailure(invalidLogin, 400);
+    expect(invalidLogin.error.message).toBe('Invalid credentials');
 
-    await api.logout(login.token);
-  });
-
-  test('rejects invalid login credentials', async ({ api }) => {
-    const response = await api.rawLogin('missing-user@example.com', 'wrong-password');
-    const body = (await response.json()) as { message: string };
-
-    expect(response.status()).toBeLessThan(500);
-    expect(response.status()).toBe(400);
-    expect(body.message).toBe('Invalid credentials');
+    const duplicate = await api.auth.register(actor.user);
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.status).toBeGreaterThanOrEqual(400);
+    expect(duplicate.status).toBeLessThan(500);
   });
 });

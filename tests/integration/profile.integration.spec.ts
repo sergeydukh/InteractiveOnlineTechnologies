@@ -1,15 +1,20 @@
 import { test, expect } from '@fixtures';
+import { expectSuccess } from '@src/test-support/apiAssertions';
 
-test.describe('Integration: profile UI + API', { tag: ['@integration'] }, () => {
-  test.describe.configure({ timeout: 180000 });
+test.describe('Profile UI and API integration', { tag: '@integration' }, () => {
+  test('persists editable fields and keeps email read-only', async ({ api, actor, profilePage }) => {
+    const name = `Integrated ${Date.now()}`;
+    await expect(profilePage.email).toHaveValue(actor.user.email);
+    await expect(profilePage.email).not.toBeEditable();
+    expect((await profilePage.save({ name, gender: '1', consent: false })).ok()).toBe(true);
 
-  test('UI profile update is persisted in API state', async ({ api, testUser, uniqueProfilePage }) => {
-    const newName = `Integrated ${Date.now()}`;
-
-    await uniqueProfilePage.updateName(newName);
-    await expect(uniqueProfilePage.page).toHaveURL(/dashboard\.html/);
-
-    const profile = await api.getProfile(testUser.token);
-    expect(profile.user.name).toBe(newName);
+    const result = await api.profile.get(actor.session);
+    expectSuccess(result);
+    expect(result.data.user).toMatchObject({
+      name,
+      email: actor.user.email,
+      gender: '1',
+      internalAnalyticsConsent: false,
+    });
   });
 });

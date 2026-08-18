@@ -1,8 +1,9 @@
 import { test, expect } from '@fixtures';
 
-test.describe('Integration: admin UI + API data', { tag: ['@integration'] }, () => {
-  test('admin search finds a user created through API', async ({ adminPage, testUser }) => {
-    await adminPage.searchUser(testUser.email);
-    await expect(adminPage.usersContainer).toContainText(testUser.email);
+test.describe('Admin UI and API-created data', { tag: '@integration' }, () => {
+  test('finds a newly registered user without exposing admin credentials', async ({ adminPage, actor }) => {
+    const response = await adminPage.searchFor(actor.user.email);
+    expect(response.ok()).toBe(true);
+    await expect(adminPage.users).toContainText(actor.user.email);
   });
 });
