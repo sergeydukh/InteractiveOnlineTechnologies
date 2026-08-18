@@ -50,6 +50,7 @@ interface WorkerFixtures {
 // Back-to-back runs can receive a Retry-After close to the environment's 15-minute rate-limit window.
 const provisioningTimeoutMs = 1_000_000;
 
+/** Playwright composition root used by all functional test layers. */
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   api: async ({ request }, use) => {
     const secrets = requireE2ESecrets();

@@ -12,7 +12,7 @@
     "test:headed": "playwright test --headed",
     "test:ui-mode": "playwright test --ui",
     "test:report": "playwright show-report",
-    "test:list": "playwright test --list",
+    "test:list": "playwright test --list --reporter=line",
     "unit": "vitest run",
     "unit:coverage": "vitest run --coverage",
     "lint": "eslint .",

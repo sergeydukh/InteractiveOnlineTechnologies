@@ -14,7 +14,7 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
-      "@fixtures": ["src/fixtures/test"],
+      "@fixtures": ["src/fixtures/test.fixture"],
       "@src/*": ["src/*"]
     }
   },
