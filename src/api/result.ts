@@ -20,6 +20,16 @@ export class ApiContractError extends Error {
   }
 }
 
+export class ApiNetworkError extends Error {
+  constructor(
+    readonly path: string,
+    options?: ErrorOptions,
+  ) {
+    super(`API network request failed for ${path}`, options);
+    this.name = 'ApiNetworkError';
+  }
+}
+
 export function requireSuccess<T>(result: ApiResult<T>, operation: string): T {
   if (!result.ok) {
     throw new Error(`${operation} failed with HTTP ${result.status}: ${result.error.message}`);

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-export class AuthApiStub {
+export class AuthRouteStub {
   constructor(private readonly page: Page) {}
 
   async rejectLogin(message = 'Invalid credentials'): Promise<void> {

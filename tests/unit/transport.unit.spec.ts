@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { HttpTransport, parseRetryAfter } from '../../src/api/httpTransport';
 import { ApiContractError } from '../../src/api/result';
+import type { ApiNetworkError } from '../../src/api/result';
 import type { APIRequestContext } from '@playwright/test';
 
 describe('HttpTransport', () => {
@@ -10,14 +11,14 @@ describe('HttpTransport', () => {
     const transport = new HttpTransport(context, { accessKey: 'access-key' });
     const result = await transport.send({
       method: 'GET',
-      path: '/resource',
+      path: '/api/resource',
       schema: z.object({ value: z.string() }),
       session: { role: 'user', token: 'session-token' },
     });
 
     expect(result).toEqual({ ok: true, status: 200, data: { value: 'ok' } });
     expect(fetch).toHaveBeenCalledWith(
-      '/resource',
+      '/api/resource',
       expect.objectContaining({
         headers: expect.objectContaining({ 'X-Access-Key': 'access-key', Authorization: 'Bearer session-token' }),
       }),
@@ -31,7 +32,7 @@ describe('HttpTransport', () => {
     });
     await transport.send({
       method: 'GET',
-      path: '/events',
+      path: '/api/events',
       schema: z.array(z.unknown()),
       authorization: 'analytics-basic',
     });
@@ -44,7 +45,7 @@ describe('HttpTransport', () => {
     const { context } = fakeContext(429, { message: 'Too many requests' }, { 'retry-after': '2' });
     const result = await new HttpTransport(context, {}).send({
       method: 'POST',
-      path: '/setup',
+      path: '/api/setup',
       schema: z.object({}),
     });
     expect(result).toEqual({
@@ -60,7 +61,7 @@ describe('HttpTransport', () => {
     await expect(
       new HttpTransport(context, {}).send({
         method: 'GET',
-        path: '/contract',
+        path: '/api/contract',
         schema: z.object({ value: z.string() }),
       }),
     ).rejects.toBeInstanceOf(ApiContractError);
@@ -70,6 +71,16 @@ describe('HttpTransport', () => {
     expect(parseRetryAfter('1')).toBe(1_000);
     expect(parseRetryAfter(new Date(Date.now() + 2_000).toUTCString())).toBeGreaterThanOrEqual(0);
     expect(parseRetryAfter('invalid')).toBeUndefined();
+  });
+
+  it('wraps network failures with the request path', async () => {
+    const context = {
+      fetch: vi.fn().mockRejectedValue(new Error('connection closed')),
+    } as unknown as APIRequestContext;
+
+    await expect(
+      new HttpTransport(context, {}).send({ method: 'GET', path: '/api/profile', schema: z.object({}) }),
+    ).rejects.toMatchObject({ name: 'ApiNetworkError', path: '/api/profile' } satisfies Partial<ApiNetworkError>);
   });
 });
 

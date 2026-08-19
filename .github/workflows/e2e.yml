@@ -10,7 +10,7 @@ on:
         required: true
         default: smoke
         type: choice
-        options: [smoke, api, ui, integration, all]
+        options: [smoke, api, ui, integration, known-defects, all]
       environment:
         description: Protected GitHub Environment
         required: true
@@ -62,7 +62,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - name: Select suite
         id: suite
         shell: bash
@@ -72,20 +72,25 @@ jobs:
           suite="$REQUESTED_SUITE"
           if [[ -z "$suite" && "${{ github.event_name }}" == "repository_dispatch" ]]; then suite="all"; fi
           if [[ -z "$suite" ]]; then suite="smoke"; fi
-          case "$suite" in smoke|api|ui|integration|all) ;; *) exit 2 ;; esac
+          case "$suite" in smoke|api|ui|integration|known-defects|all) ;; *) exit 2 ;; esac
           echo "value=$suite" >> "$GITHUB_OUTPUT"
       - name: Run remote tests
         shell: bash
         run: |
           case "${{ steps.suite.outputs.value }}" in
-            smoke) npm run test:smoke ;;
+            smoke) npm run test:cross-browser-smoke ;;
             api) npm run test:api ;;
             ui) npm run test:ui ;;
             integration) npm run test:integration ;;
+            known-defects) npm run test:known-defects ;;
             all) npm test ;;
           esac
-      - name: Upload reports and diagnostics
+      - name: Scan reports for configured secrets
+        id: artifact_scan
         if: always()
+        run: npm run artifacts:scan
+      - name: Upload reports and diagnostics
+        if: always() && steps.artifact_scan.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: e2e-${{ steps.suite.outputs.value }}-${{ github.run_id }}

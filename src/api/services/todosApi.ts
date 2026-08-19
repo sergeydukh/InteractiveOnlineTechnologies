@@ -1,6 +1,7 @@
 import { MessageSchema, TodoResponseSchema, TodosResponseSchema } from '../contracts';
-import type { UserSession } from '../../domain/session';
+import type { UserSession } from '../../auth/session';
 import type { HttpTransport } from '../httpTransport';
+import { paginationParams } from '../queryParams';
 
 export interface TodoQuery {
   readonly status?: 'all' | 'active' | 'completed';
@@ -14,13 +15,10 @@ export class TodosApi {
   constructor(private readonly transport: HttpTransport) {}
 
   list(session?: UserSession, query: TodoQuery = {}) {
-    const params = new URLSearchParams({
-      status: query.status ?? 'all',
-      search: query.search ?? '',
-      page: String(query.page ?? 1),
-      limit: String(query.limit ?? 5),
-      sort: 'smart',
-    });
+    const params = paginationParams(query);
+    params.set('status', query.status ?? 'all');
+    params.set('search', query.search ?? '');
+    params.set('sort', 'smart');
     for (const id of query.tagIds ?? []) params.append('tagIds', id);
     return this.transport.send({
       method: 'GET',

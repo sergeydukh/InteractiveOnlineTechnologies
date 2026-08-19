@@ -8,6 +8,9 @@ export class TodoList {
   readonly filterActive: Locator;
   readonly filterCompleted: Locator;
   readonly deleteDialog: Locator;
+  readonly previousPage: Locator;
+  readonly nextPage: Locator;
+  readonly pageInfo: Locator;
 
   constructor(private readonly page: Page) {
     this.input = page.locator('[data-ui="todo-input"]');
@@ -17,6 +20,9 @@ export class TodoList {
     this.filterActive = page.locator('[data-filter="active"]');
     this.filterCompleted = page.locator('[data-filter="completed"]');
     this.deleteDialog = page.locator('[data-ui="delete-todo-modal"]');
+    this.previousPage = page.locator('[data-ui="page-prev"]');
+    this.nextPage = page.locator('[data-ui="page-next"]');
+    this.pageInfo = page.locator('[data-ui="page-info"]');
   }
 
   item(title: string): Locator {
@@ -32,6 +38,31 @@ export class TodoList {
 
   async complete(title: string): Promise<Response> {
     return this.mutation('PATCH', '/api/todos/', () => this.item(title).getByRole('checkbox').check());
+  }
+
+  async filter(status: 'all' | 'active' | 'completed'): Promise<Response> {
+    const control = {
+      all: this.filterAll,
+      active: this.filterActive,
+      completed: this.filterCompleted,
+    }[status];
+    return this.query(() => control.click());
+  }
+
+  async search(value: string): Promise<Response> {
+    const response = this.page.waitForResponse(
+      (candidate) => candidate.url().includes('/api/todos?') && candidate.request().method() === 'GET',
+    );
+    await this.input.fill(value);
+    return response;
+  }
+
+  async goToNextPage(): Promise<Response> {
+    return this.query(() => this.nextPage.click());
+  }
+
+  async goToPreviousPage(): Promise<Response> {
+    return this.query(() => this.previousPage.click());
   }
 
   async edit(title: string, replacement: string): Promise<Response> {
@@ -65,6 +96,14 @@ export class TodoList {
   private async mutation(method: string, path: string, action: () => Promise<void>): Promise<Response> {
     const response = this.page.waitForResponse(
       (candidate) => candidate.url().includes(path) && candidate.request().method() === method,
+    );
+    await action();
+    return response;
+  }
+
+  private async query(action: () => Promise<void>): Promise<Response> {
+    const response = this.page.waitForResponse(
+      (candidate) => candidate.url().includes('/api/todos?') && candidate.request().method() === 'GET',
     );
     await action();
     return response;

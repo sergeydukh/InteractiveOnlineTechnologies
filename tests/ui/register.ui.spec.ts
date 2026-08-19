@@ -1,5 +1,5 @@
 import { test, expect } from '@fixtures';
-import { createRegistrationData, testRunId } from '@src/test-support/testData';
+import { createRegistrationData, createTempAvatar, removeTempFile, testRunId } from '@src/test-support/testData';
 
 test.describe('Registration UI', { tag: '@ui' }, () => {
   test('registers a unique user and opens dashboard', async ({ registerPage, page }, testInfo) => {
@@ -26,5 +26,22 @@ test.describe('Registration UI', { tag: '@ui' }, () => {
     const validity = await registerPage.consentValidity();
     expect(validity).toEqual({ valid: false, valueMissing: true });
     await expect(page).toHaveURL(/register\.html/u);
+  });
+
+  test('registers with a valid photo and selected gender', async ({ registerPage, page }, testInfo) => {
+    const user = createRegistrationData({
+      runId: testRunId(),
+      project: testInfo.project.name,
+      worker: testInfo.workerIndex,
+      testId: `${testInfo.testId.slice(-10)}-photo`,
+    });
+    const photo = createTempAvatar();
+    try {
+      const response = await registerPage.register({ ...user, gender: '1', analyticsConsent: true, photo });
+      expect(response.ok()).toBe(true);
+      await expect(page).toHaveURL(/dashboard\.html/u);
+    } finally {
+      removeTempFile(photo);
+    }
   });
 });

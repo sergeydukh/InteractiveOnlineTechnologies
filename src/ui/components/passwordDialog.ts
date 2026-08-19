@@ -35,4 +35,9 @@ export class PasswordDialog {
     await this.page.locator('[data-ui="password-modal-cancel"]').click();
     await this.root.waitFor({ state: 'hidden' });
   }
+
+  async close(): Promise<void> {
+    await this.page.locator('[data-ui="password-modal-close"]').click();
+    await this.root.waitFor({ state: 'hidden' });
+  }
 }

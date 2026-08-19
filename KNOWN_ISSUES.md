@@ -18,6 +18,12 @@ The assignment mentions `POST /api/analytics/register|login|logout` but does not
 
 ## KNOWN-003: unsupported avatar produces a server error
 
-Uploading a non-image file through the profile endpoint returns HTTP `500` instead of a controlled `4xx` validation response. The UI scenario records the exact current status after first proving the valid PNG upload/removal flow.
+Uploading a non-image file through the profile endpoint returns HTTP `500` instead of a controlled `4xx` validation response. The automated probe was removed from regression because MIME/security probes are outside the agreed test-assignment scope. Valid PNG upload/removal remains covered through UI and API.
 
 Expected resolution: reject unsupported media with a stable client-error status and visible UI feedback, then replace the characterization assertion.
+
+## KNOWN-004: logout does not invalidate the bearer token
+
+`POST /api/auth/logout` returns success and the UI clears local storage, but the same bearer token can still read the profile. The intended invalidation check runs only in the known-defects lane.
+
+Expected resolution: revoke the logged-out token server-side while leaving other active sessions valid, then remove `test.fail`.

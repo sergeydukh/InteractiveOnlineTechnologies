@@ -1,5 +1,5 @@
 import { LoginSchema, MessageSchema } from '../contracts';
-import type { AuthSession } from '../../domain/session';
+import type { AuthSession } from '../../auth/session';
 import type { HttpTransport } from '../httpTransport';
 
 export interface RegistrationData {

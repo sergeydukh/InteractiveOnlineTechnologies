@@ -6,6 +6,7 @@ export interface UiRegistrationData {
   readonly gender: '0' | '1';
   readonly password: string;
   readonly analyticsConsent: boolean;
+  readonly photo?: string;
 }
 
 export class RegisterPage {
@@ -38,6 +39,7 @@ export class RegisterPage {
     await this.email.fill(data.email);
     await this.gender.selectOption(data.gender);
     await this.password.fill(data.password);
+    if (data.photo) await this.photo.setInputFiles(data.photo);
     await this.analyticsConsent.setChecked(data.analyticsConsent);
   }
 

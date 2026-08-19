@@ -38,4 +38,18 @@ export class AnalyticsProbe {
     } while (Date.now() < deadline);
     return true;
   }
+
+  async waitForAll(
+    predicates: ReadonlyArray<(event: AnalyticsEvent) => boolean>,
+    timeoutMs = 20_000,
+    intervalMs = 500,
+  ): Promise<AnalyticsEvent[]> {
+    const deadline = Date.now() + timeoutMs;
+    do {
+      const events = requireSuccess(await this.analytics.getEvents(), 'Read analytics events');
+      if (predicates.every((predicate) => events.some(predicate))) return events;
+      await this.delay(Math.min(intervalMs, Math.max(deadline - Date.now(), 0)));
+    } while (Date.now() < deadline);
+    throw new Error('Expected analytics events did not all appear before the observation deadline.');
+  }
 }

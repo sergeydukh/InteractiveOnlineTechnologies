@@ -1,8 +1,9 @@
 import type { APIRequestContext } from '@playwright/test';
 import type { z } from 'zod';
 import { ApiErrorSchema } from './contracts';
-import { ApiContractError, type ApiResult } from './result';
-import type { AuthSession } from '../domain/session';
+import { ApiContractError, ApiNetworkError, type ApiResult } from './result';
+import type { AuthSession } from '../auth/session';
+import type { UploadFile } from './fileUpload';
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -11,15 +12,21 @@ export interface TransportOptions {
   readonly analyticsCredentials?: Readonly<{ username: string; password: string }>;
 }
 
-export interface ApiRequest<T> {
+interface ApiRequestBase<T> {
   readonly method: HttpMethod;
   readonly path: string;
   readonly schema: z.ZodType<T>;
-  readonly session?: AuthSession;
-  readonly authorization?: 'analytics-basic';
-  readonly data?: unknown;
-  readonly multipart?: Record<string, string | number | boolean | { name: string; mimeType: string; buffer: Buffer }>;
 }
+
+type ApiAuthorization =
+  | { readonly session?: AuthSession; readonly authorization?: never }
+  | { readonly session?: never; readonly authorization: 'analytics-basic' };
+
+type ApiBody =
+  | { readonly data?: unknown; readonly multipart?: never }
+  | { readonly data?: never; readonly multipart: Record<string, string | number | boolean | UploadFile> };
+
+export type ApiRequest<T> = ApiRequestBase<T> & ApiAuthorization & ApiBody;
 
 export class HttpTransport {
   constructor(
@@ -28,12 +35,18 @@ export class HttpTransport {
   ) {}
 
   async send<T>(request: ApiRequest<T>): Promise<ApiResult<T>> {
-    const response = await this.request.fetch(request.path, {
-      method: request.method,
-      headers: this.headers(request),
-      data: request.data,
-      multipart: request.multipart,
-    });
+    if (!request.path.startsWith('/api/')) throw new Error(`API path must start with /api/: ${request.path}`);
+    let response;
+    try {
+      response = await this.request.fetch(request.path, {
+        method: request.method,
+        headers: this.headers(request),
+        data: request.data,
+        multipart: request.multipart,
+      });
+    } catch (error) {
+      throw new ApiNetworkError(request.path, { cause: error });
+    }
     const body = await parseJson(response.status(), request.path, await response.text());
 
     if (response.ok()) {
@@ -60,10 +73,11 @@ export class HttpTransport {
   private headers<T>(request: ApiRequest<T>): Record<string, string> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (this.options.accessKey) headers['X-Access-Key'] = this.options.accessKey;
-    if (request.session) headers.Authorization = `Bearer ${request.session.token}`;
     if (request.authorization === 'analytics-basic' && this.options.analyticsCredentials) {
       const { username, password } = this.options.analyticsCredentials;
       headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    } else if (request.session) {
+      headers.Authorization = `Bearer ${request.session.token}`;
     }
     return headers;
   }

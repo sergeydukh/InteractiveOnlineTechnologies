@@ -6,6 +6,7 @@ import { AuthApi } from './services/authApi';
 import { ProfileApi } from './services/profileApi';
 import { TagsApi } from './services/tagsApi';
 import { TodosApi } from './services/todosApi';
+import { UploadsApi } from './services/uploadsApi';
 
 export class AppApi {
   readonly auth: AuthApi;
@@ -14,6 +15,7 @@ export class AppApi {
   readonly tags: TagsApi;
   readonly admin: AdminApi;
   readonly analytics: AnalyticsApi;
+  readonly uploads: UploadsApi;
 
   constructor(request: APIRequestContext, options: TransportOptions) {
     const transport = new HttpTransport(request, options);
@@ -23,5 +25,6 @@ export class AppApi {
     this.tags = new TagsApi(transport);
     this.admin = new AdminApi(transport);
     this.analytics = new AnalyticsApi(transport);
+    this.uploads = new UploadsApi(transport);
   }
 }

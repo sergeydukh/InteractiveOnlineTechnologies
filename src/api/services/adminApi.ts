@@ -1,6 +1,7 @@
 import { AdminOverviewSchema } from '../contracts';
-import type { AuthSession } from '../../domain/session';
+import type { AuthSession } from '../../auth/session';
 import type { HttpTransport } from '../httpTransport';
+import { paginationParams } from '../queryParams';
 
 export interface AdminQuery {
   readonly search?: string;
@@ -12,7 +13,7 @@ export class AdminApi {
   constructor(private readonly transport: HttpTransport) {}
 
   getOverview(session?: AuthSession, query: AdminQuery = {}) {
-    const params = new URLSearchParams({ page: String(query.page ?? 1), limit: String(query.limit ?? 5) });
+    const params = paginationParams(query);
     if (query.search) params.set('search', query.search);
     return this.transport.send({
       method: 'GET',

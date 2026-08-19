@@ -1,4 +1,4 @@
-import type { AuthSession } from '../domain/session';
+import type { AuthSession } from '../auth/session';
 
 export function storageStateFor(baseUrl: string, session: AuthSession) {
   const key = session.role === 'admin' ? 'adminToken' : 'token';

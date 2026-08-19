@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { RegistrationData } from '../api/services/authApi';
-import type { UserSession } from '../domain/session';
+import type { UserSession } from '../auth/session';
+import type { UploadFile } from '../api/fileUpload';
 
 export interface TestIdentity {
   readonly runId: string;
@@ -14,8 +15,9 @@ export interface TestIdentity {
 
 export interface TestActor {
   readonly user: RegistrationData;
-  readonly session: UserSession;
+  session: UserSession;
   readonly identity: TestIdentity;
+  readonly registrationStartedAt: number;
 }
 
 export function testRunId(env: NodeJS.ProcessEnv = process.env): string {
@@ -58,6 +60,17 @@ export function createTempAvatar(extension: 'png' | 'txt' = 'png'): string {
       : Buffer.from('not an image');
   fs.writeFileSync(file, content);
   return file;
+}
+
+export function validPngUpload(name = 'avatar.png'): UploadFile {
+  return {
+    name,
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a4944415408d7636000000002000193e583610000000049454e44ae426082',
+      'hex',
+    ),
+  };
 }
 
 export function removeTempFile(file: string): void {

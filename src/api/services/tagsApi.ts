@@ -1,5 +1,5 @@
 import { MessageSchema, PaletteSchema, TagResponseSchema, TagsResponseSchema } from '../contracts';
-import type { UserSession } from '../../domain/session';
+import type { UserSession } from '../../auth/session';
 import type { HttpTransport } from '../httpTransport';
 
 export class TagsApi {
@@ -14,7 +14,7 @@ export class TagsApi {
     if (search) params.set('search', search);
     return this.transport.send({
       method: 'GET',
-      path: `/api/tags?${params.toString()}`,
+      path: search ? `/api/tags?${params.toString()}` : '/api/tags',
       schema: TagsResponseSchema,
       session,
     });
@@ -22,6 +22,16 @@ export class TagsApi {
 
   create(session: UserSession, data: Readonly<{ name: string; color: string }>) {
     return this.transport.send({ method: 'POST', path: '/api/tags', schema: TagResponseSchema, session, data });
+  }
+
+  ensure(session: UserSession, name: string) {
+    return this.transport.send({
+      method: 'POST',
+      path: '/api/tags/ensure',
+      schema: TagResponseSchema,
+      session,
+      data: { name },
+    });
   }
 
   delete(session: UserSession, tagId: string) {

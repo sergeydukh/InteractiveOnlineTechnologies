@@ -6,6 +6,7 @@ export class TagsPanel {
   readonly name: Locator;
   readonly colors: Locator;
   readonly list: Locator;
+  readonly closeButton: Locator;
 
   constructor(private readonly page: Page) {
     this.root = page.locator('[data-ui="tags-sidebar"]');
@@ -13,6 +14,7 @@ export class TagsPanel {
     this.name = page.locator('[data-ui="tag-name-input"]');
     this.colors = page.locator('[data-ui="tag-color-grid"]');
     this.list = page.locator('[data-ui="tags-list"]');
+    this.closeButton = page.locator('[data-ui="close-tags-sidebar-button"]');
   }
 
   async open(): Promise<void> {
@@ -36,5 +38,28 @@ export class TagsPanel {
 
   async select(name: string): Promise<void> {
     await this.list.getByText(`#${name}`, { exact: false }).click();
+  }
+
+  async close(): Promise<void> {
+    await this.closeButton.click();
+    await this.root.waitFor({ state: 'hidden' });
+  }
+
+  async search(value: string): Promise<Response> {
+    await this.open();
+    const response = this.page.waitForResponse(
+      (candidate) => candidate.url().includes('/api/tags?') && candidate.request().method() === 'GET',
+    );
+    await this.name.fill(value);
+    return response;
+  }
+
+  async delete(name: string): Promise<Response> {
+    await this.open();
+    const response = this.page.waitForResponse(
+      (candidate) => candidate.url().includes('/api/tags/') && candidate.request().method() === 'DELETE',
+    );
+    await this.page.getByRole('button', { name: `Удалить тег ${name}` }).click();
+    return response;
   }
 }

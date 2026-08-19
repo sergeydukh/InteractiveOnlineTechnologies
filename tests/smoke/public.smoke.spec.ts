@@ -13,9 +13,8 @@ test.describe('Public pages smoke', { tag: '@smoke' }, () => {
     await expect(registerPage.analyticsConsent).toBeVisible();
   });
 
-  test('vacancy application form is available without creating credentials', async ({ page }) => {
-    await page.goto('/vacancy-application.html');
-    await expect(page.getByRole('heading', { name: 'Заявка на вакансию' })).toBeVisible();
-    await expect(page.locator('[data-ui="vacancy-full-name"]')).toBeVisible();
+  test('vacancy application form is available without creating credentials', async ({ vacancyPage }) => {
+    await expect(vacancyPage.page.getByRole('heading', { name: 'Заявка на вакансию' })).toBeVisible();
+    await expect(vacancyPage.fullName).toBeVisible();
   });
 });

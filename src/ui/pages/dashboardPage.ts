@@ -1,4 +1,4 @@
-import type { Locator, Page, Response } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { TagsPanel } from '../components/tagsPanel';
 import { TodoList } from '../components/todoList';
 
@@ -17,11 +17,9 @@ export class DashboardPage {
     await this.page.goto('/dashboard.html');
   }
 
-  async logout(): Promise<Response> {
-    const response = this.page.waitForResponse(
-      (candidate) => candidate.url().includes('/api/auth/logout') && candidate.request().method() === 'POST',
-    );
-    await this.logoutButton.click();
-    return response;
+  async logout(): Promise<void> {
+    // A login response can arrive before dashboard.js attaches its DOMContentLoaded handlers.
+    await this.page.waitForLoadState('domcontentloaded');
+    await Promise.all([this.page.waitForURL(/index\.html/u), this.logoutButton.click()]);
   }
 }

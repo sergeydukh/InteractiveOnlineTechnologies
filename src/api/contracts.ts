@@ -6,7 +6,8 @@ export const ApiErrorSchema = z
     error: z.string().optional(),
   })
   .loose()
-  .transform((value) => ({ ...value, message: value.message ?? value.error ?? 'Unknown API error' }));
+  .refine((value) => Boolean(value.message ?? value.error), { message: 'API error body has no message' })
+  .transform((value) => ({ ...value, message: value.message ?? value.error! }));
 
 export const MessageSchema = z.object({ message: z.string().optional() }).loose();
 
@@ -57,10 +58,24 @@ export const TodosResponseSchema = z.object({ todos: z.array(TodoSchema), pagina
 export const TagResponseSchema = z.object({ tag: TagSchema }).loose();
 export const TagsResponseSchema = z.object({ tags: z.array(TagSchema) }).loose();
 export const PaletteSchema = z.object({ colors: z.array(z.string()).min(1) }).loose();
+export const FileUploadSchema = z.object({ fileUrl: z.string().min(1) }).loose();
 
+export const AnalyticsEventTypeSchema = z.enum([
+  'register',
+  'login',
+  'logout',
+  'photoUpload',
+  'todoCreate',
+  'todoComplete',
+  'todoEdit',
+  'todoDelete',
+  'passwordChangeSuccess',
+  'passwordChangeFailed',
+  'analyticsConsentChange',
+]);
 export const AnalyticsEventSchema = z
   .object({
-    type: z.string().min(1),
+    type: AnalyticsEventTypeSchema,
     status: z.enum(['success', 'failed']).optional(),
     timestamp: z.iso.datetime({ offset: true }),
     email: z.string().optional(),
@@ -92,5 +107,6 @@ export type LoginResponse = z.infer<typeof LoginSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type Todo = z.infer<typeof TodoSchema>;
 export type Tag = z.infer<typeof TagSchema>;
+export type AnalyticsEventType = z.infer<typeof AnalyticsEventTypeSchema>;
 export type AnalyticsEvent = z.infer<typeof AnalyticsEventSchema>;
 export type AdminOverview = z.infer<typeof AdminOverviewSchema>;
