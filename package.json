@@ -4,6 +4,7 @@
   "description": "QA Automation test suite for mediamarslab recruitment app",
   "scripts": {
     "test": "playwright test --project=api --project=smoke --project=ui --project=integration --grep-invert @known-defect",
+    "test:core": "playwright test --project=api --project=smoke --project=ui --grep-invert @known-defect",
     "test:cross-browser-smoke": "playwright test --project=smoke --project=smoke-firefox --project=smoke-webkit --grep-invert @known-defect",
     "test:smoke": "playwright test --project=smoke --grep-invert @known-defect",
     "test:ui": "playwright test --project=ui --grep-invert @known-defect",

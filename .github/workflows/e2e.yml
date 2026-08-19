@@ -44,111 +44,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test:
+  resolve:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    environment: ${{ inputs.environment || 'qa' }}
-    env:
-      ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
-      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      ANALYTICS_BASIC_USER: ${{ secrets.ANALYTICS_BASIC_USER }}
-      ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
-      TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}
+    outputs:
+      environment: ${{ steps.target.outputs.environment }}
+      suite: ${{ steps.target.outputs.suite }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Select suite
-        id: suite
+      - name: Resolve requested target
+        id: target
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_ENVIRONMENT: ${{ inputs.environment }}
           REQUESTED_SUITE: ${{ inputs.suite }}
         run: |
           suite="$REQUESTED_SUITE"
-          if [[ -z "$suite" && "${{ github.event_name }}" == "repository_dispatch" ]]; then suite="all"; fi
+          if [[ -z "$suite" && "$EVENT_NAME" == "repository_dispatch" ]]; then suite="all"; fi
           if [[ -z "$suite" ]]; then suite="smoke"; fi
           case "$suite" in
-            api) browsers="none"; rate_limit_budget=0 ;;
-            smoke) browsers="cross-browser"; rate_limit_budget=0 ;;
-            ui|integration|known-defects) browsers="chromium"; rate_limit_budget=0 ;;
-            all) browsers="chromium"; rate_limit_budget=34 ;;
+            smoke|api|ui|integration|known-defects|all) ;;
             *) exit 2 ;;
           esac
-          echo "value=$suite" >> "$GITHUB_OUTPUT"
-          echo "browsers=$browsers" >> "$GITHUB_OUTPUT"
-          echo "rate-limit-budget=$rate_limit_budget" >> "$GITHUB_OUTPUT"
-      - name: Check QA rate limit before browser installation
-        shell: bash
-        env:
-          REQUIRED_RATE_LIMIT_BUDGET: ${{ steps.suite.outputs.rate-limit-budget }}
-        run: |
-          node --input-type=module <<'NODE'
-          const baseUrl = (process.env.BASE_URL || 'https://qa-a.recruitment.mediamarslab.com').replace(/\/+$/, '');
-          const response = await fetch(`${baseUrl}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-access-key': process.env.ACCESS_KEY },
-            body: JSON.stringify({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD }),
-          });
-          if (response.status === 429) {
-            const retryAfter = response.headers.get('retry-after') || 'unknown';
-            console.error(`::error title=QA rate limit active::Retry after ${retryAfter} seconds, then rerun this workflow.`);
-            process.exit(1);
-          }
-          if (!response.ok) {
-            console.error(`::error title=QA preflight failed::Admin login returned HTTP ${response.status}.`);
-            process.exit(1);
-          }
-          const required = Number(process.env.REQUIRED_RATE_LIMIT_BUDGET || 0);
-          const remaining = Number(response.headers.get('ratelimit-remaining'));
-          const reset = response.headers.get('ratelimit-reset') || 'unknown';
-          if (required > 0 && (!Number.isFinite(remaining) || remaining < required)) {
-            console.error(
-              `::error title=Insufficient QA rate-limit budget::The all suite needs ${required} available requests, ` +
-                `but QA reports ${Number.isFinite(remaining) ? remaining : 'unknown'}. Rerun after ${reset} seconds.`,
-            );
-            process.exit(1);
-          }
-          console.log(`QA preflight passed (${Number.isFinite(remaining) ? remaining : 'unknown'} requests remaining).`);
-          NODE
-      - name: Cache Playwright browsers
-        if: steps.suite.outputs.browsers != 'none'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.suite.outputs.browsers }}-${{ hashFiles('package-lock.json') }}
-      - name: Install required Playwright browsers
-        shell: bash
-        run: |
-          case "${{ steps.suite.outputs.browsers }}" in
-            none) ;;
-            chromium) npx playwright install --with-deps chromium ;;
-            cross-browser) npx playwright install --with-deps chromium firefox webkit ;;
-          esac
-      - name: Run remote tests
-        shell: bash
-        run: |
-          case "${{ steps.suite.outputs.value }}" in
-            smoke) npm run test:cross-browser-smoke ;;
-            api) npm run test:api ;;
-            ui) npm run test:ui ;;
-            integration) npm run test:integration ;;
-            known-defects) npm run test:known-defects ;;
-            all) npm test ;;
-          esac
-      - name: Scan reports for configured secrets
-        id: artifact_scan
-        if: always()
-        run: npm run artifacts:scan
-      - name: Upload reports and diagnostics
-        if: always() && steps.artifact_scan.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-${{ steps.suite.outputs.value }}-${{ github.run_id }}
-          path: |
-            playwright-report
-            test-results
-          retention-days: 14
+          environment="$REQUESTED_ENVIRONMENT"
+          if [[ -z "$environment" ]]; then environment="qa"; fi
+          echo "suite=$suite" >> "$GITHUB_OUTPUT"
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
+  selected-suite:
+    needs: resolve
+    if: needs.resolve.outputs.suite != 'all'
+    uses: ./.github/workflows/e2e-suite.yml
+    with:
+      suite: ${{ needs.resolve.outputs.suite }}
+      environment: ${{ needs.resolve.outputs.environment }}
+      cross_browser_smoke: ${{ needs.resolve.outputs.suite == 'smoke' }}
+    secrets: inherit
+
+  all-core:
+    needs: resolve
+    if: needs.resolve.outputs.suite == 'all'
+    uses: ./.github/workflows/e2e-suite.yml
+    with:
+      suite: core
+      environment: ${{ needs.resolve.outputs.environment }}
+      cross_browser_smoke: false
+    secrets: inherit
+
+  all-integration:
+    needs: [resolve, all-core]
+    if: always() && needs.resolve.outputs.suite == 'all'
+    uses: ./.github/workflows/e2e-suite.yml
+    with:
+      suite: integration
+      environment: ${{ needs.resolve.outputs.environment }}
+      cross_browser_smoke: false
+    secrets: inherit
