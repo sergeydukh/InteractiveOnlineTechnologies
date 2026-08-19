@@ -61,18 +61,19 @@ runs:
         console.log('QA authentication preflight passed.');
         NODE
     - name: Cache Playwright browsers
+      id: browser-cache
       if: steps.runtime.outputs.browsers != 'none'
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.runtime.outputs.browsers }}-${{ hashFiles('package-lock.json') }}
     - name: Install required Playwright browsers
+      if: steps.runtime.outputs.browsers != 'none' && steps.browser-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         case "${{ steps.runtime.outputs.browsers }}" in
-          none) ;;
-          chromium) npx playwright install --with-deps chromium ;;
-          cross-browser) npx playwright install --with-deps chromium firefox webkit ;;
+          chromium) npx playwright install chromium ;;
+          cross-browser) npx playwright install chromium firefox webkit ;;
         esac
     - name: Run remote tests
       shell: bash
