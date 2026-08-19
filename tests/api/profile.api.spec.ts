@@ -1,31 +1,56 @@
 import { test, expect } from '@fixtures';
+import { expectSuccess } from '@src/test-support/apiAssertions';
+import { validPngUpload } from '@src/test-support/testData';
 
-test.describe('API: profile', { tag: '@api' }, () => {
-  test('reads and updates profile for a unique user', async ({ api, testUser }) => {
-    const profile = await api.getProfile(testUser.token);
-    expect(profile.user.email).toBe(testUser.email);
+test.describe('Profile API', { tag: '@api' }, () => {
+  test('enforces profile and password contracts', async ({ api, isolatedActor: actor }) => {
+    const initial = await api.profile.get(actor.session);
+    expectSuccess(initial, 200);
+    expect(initial.data.user.email).toBe(actor.user.email);
 
-    const updated = await api.updateProfile(testUser.token, {
-      name: `${testUser.name} API`,
+    const updated = await api.profile.update(actor.session, {
+      name: 'n'.repeat(120),
+      gender: '1',
+      internalAnalyticsConsent: false,
+    });
+    expectSuccess(updated, 200);
+    expect(updated.data.user).toMatchObject({
+      name: 'n'.repeat(120),
       gender: '1',
       internalAnalyticsConsent: false,
     });
 
-    expect(updated.user.name).toContain('API');
-    expect(updated.user.gender).toBe('1');
-    expect(updated.user.internalAnalyticsConsent).toBe(false);
+    const mismatch = await api.profile.changePassword(actor.session, 'Password1!', 'Password2!');
+    expect(mismatch).toMatchObject({ ok: false, status: 400, error: { message: 'Passwords do not match' } });
+
+    const tooShort = await api.profile.changePassword(actor.session, '12345');
+    expect(tooShort).toMatchObject({
+      ok: false,
+      status: 400,
+      error: { message: 'Password must be at least 6 characters' },
+    });
+
+    const changed = await api.profile.changePassword(actor.session, 'NewPass!456');
+    expectSuccess(changed, 200);
+    const newLogin = await api.auth.login({ email: actor.user.email, password: 'NewPass!456' });
+    expectSuccess(newLogin, 200);
+    const oldLogin = await api.auth.login({ email: actor.user.email, password: actor.user.password });
+    expect(oldLogin).toMatchObject({ ok: false, status: 400, error: { message: 'Invalid credentials' } });
   });
 
-  test('changes password and rejects mismatched confirmation', async ({ api, testUser }) => {
-    const mismatch = await api.rawChangePassword(testUser.token, 'Password1!', 'Password2!');
-    const mismatchBody = (await mismatch.json()) as { message: string };
+  test('rejects a profile name above the UI limit', { tag: '@known-defect' }, async ({ api, isolatedActor: actor }) => {
+    const result = await api.profile.update(actor.session, { name: 'n'.repeat(121) });
+    test.fail(true, 'KNOWN-002: API accepts 121 characters while the UI limit is 120.');
+    expect(result).toMatchObject({ ok: false, status: 400 });
+  });
 
-    expect(mismatch.status()).toBeLessThan(500);
-    expect(mismatch.status()).toBe(400);
-    expect(mismatchBody.message).toBe('Passwords do not match');
+  test('uploads and removes a valid avatar', async ({ api, isolatedActor: actor }) => {
+    const uploaded = await api.profile.uploadPhoto(actor.session, validPngUpload('profile-avatar.png'));
+    expectSuccess(uploaded, 200);
+    expect(uploaded.data.user.photo).toBeTruthy();
 
-    await api.changePassword(testUser.token, 'ApiPass!456');
-    const login = await api.login(testUser.email, 'ApiPass!456');
-    expect(login.token).toBeTruthy();
+    const removed = await api.profile.update(actor.session, { photo: null });
+    expectSuccess(removed, 200);
+    expect(removed.data.user.photo).toBeFalsy();
   });
 });

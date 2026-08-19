@@ -2,9 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { getBaseUrl } = require('../config/appConfig');
-
-const BASE_URL = getBaseUrl();
+const BASE_URL = (process.env.BASE_URL || 'https://qa-a.recruitment.mediamarslab.com').trim().replace(/\/+$/, '');
 const ENV_PATH = process.env.ENV_PATH || path.join(process.cwd(), '.env');
 const ORDERED_KEYS = [
   'ACCESS_KEY',
@@ -52,13 +50,13 @@ function formatEnvValue(value) {
 }
 
 function stringifyEnv(values) {
-  const ordered = ORDERED_KEYS.filter(key => values[key] !== undefined);
+  const ordered = ORDERED_KEYS.filter((key) => values[key] !== undefined);
   const rest = Object.keys(values)
-    .filter(key => !ORDERED_KEYS.includes(key))
+    .filter((key) => !ORDERED_KEYS.includes(key))
     .sort();
 
   return [...ordered, ...rest]
-    .map(key => `${key}=${formatEnvValue(values[key])}`)
+    .map((key) => `${key}=${formatEnvValue(values[key])}`)
     .join('\n')
     .concat('\n');
 }
@@ -109,7 +107,7 @@ async function main() {
   console.log('Stored ACCESS_KEY, ADMIN_EMAIL, and ADMIN_PASSWORD. Secret values are not printed.');
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });

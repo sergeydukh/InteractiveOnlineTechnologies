@@ -1,141 +1,127 @@
-# QA Automation Playwright Suite
+# MediaMarsLab Playwright QA framework
 
-Playwright + TypeScript test suite for the Media Mars Lab recruitment QA application.
+Playwright/TypeScript framework for the recruitment todo application. The suite is intentionally risk-based: API tests own contract variants, UI tests own browser behaviour, and integration tests exist only where a cross-layer assertion adds information.
 
-Default target: `https://qa-a.recruitment.mediamarslab.com`.
+## Architecture
 
-## Setup
+```text
+tests
+  └─ fixture composition
+       ├─ api.fixture → AppApi → domain services → HttpTransport
+       ├─ actor.fixture → shared / isolated / secondary actors
+       ├─ browser.fixture → first-party routing and application contexts
+       └─ pages.fixture → UI pages/components → Playwright Page
+```
 
-Install dependencies:
+- Page Objects are used only for browser UI. There is no common base class or hidden navigation retry.
+- API calls go through domain services. Specs cannot access the transport and never build authorization headers.
+- `ApiResult<T>` keeps HTTP status and separates validated success data from typed API errors.
+- Zod validates external JSON at the API boundary.
+- Fixtures assemble all dependencies and keep secrets out of tests.
+- Browser routing adds `X-Access-Key` only to the configured first-party `/api/**` origin.
+- Resource-only CRUD tests may reuse one worker actor, but it is guarded and cleaned before and after every test. Auth, profile, analytics and ownership mutations use isolated actors.
+- User cleanup is impossible because the supplied API has no user-delete endpoint; generated emails contain a test-run marker.
+
+The architectural rationale is recorded in [ADR 001](docs/adr/001-api-boundaries.md), [ADR 002](docs/adr/002-test-data-isolation.md), and [ADR 003](docs/adr/003-first-party-access-key.md). Product gaps are recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+
+## Configuration
+
+Prerequisites: Node.js 22+, npm, and the three Playwright browser engines for cross-browser smoke.
 
 ```bash
 npm ci
-```
-
-Install Playwright browsers:
-
-```bash
-npx playwright install --with-deps chromium
-```
-
-Create local credentials:
-
-```bash
+npx playwright install chromium firefox webkit
 cp .env.example .env
 ```
 
-Then either fill `.env` manually from a saved vacancy application response or generate fresh application credentials:
+Required remote-test variables:
 
-```bash
-APPLICANT_FULL_NAME="Your Full Name" npm run secrets:bootstrap
+```dotenv
+BASE_URL=https://qa-a.recruitment.mediamarslab.com
+ACCESS_KEY=<application-id.secret>
+ADMIN_EMAIL=<admin-email>
+ADMIN_PASSWORD=<admin-password>
+ANALYTICS_BASIC_USER=<analytics-reader>
+ANALYTICS_BASIC_PASSWORD=<analytics-password>
 ```
 
-or:
+Secrets are loaded lazily. Static analysis, unit tests, and Playwright discovery work without `.env`.
+
+The vacancy application is deliberately manual because it creates one-time credentials:
 
 ```bash
-npm run secrets:bootstrap -- "Your Full Name"
+npm run secrets:bootstrap -- "Full Name"
 ```
 
-The bootstrap script writes `ACCESS_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` to `.env` without printing secret values. Provide analytics Basic Auth through `.env` or CI secrets.
-
-## Test Layers
-
-- `tests/smoke` - fast read-only checks for public pages, dashboard, profile, and admin availability.
-- `tests/ui` - browser-level mutation checks with generated test data and authenticated user fixtures.
-- `tests/api` - REST checks for auth, profile, todos, tags, admin overview, analytics endpoint access, and `X-Access-Key` protection.
-- `tests/integration` - UI actions verified through application API/admin state and selected analytics events.
-
-Each layer is tagged for selective runs:
-
-- `@smoke` - smoke specs.
-- `@ui` - UI specs.
-- `@api` - API specs.
-- `@integration` - integration specs.
+Do not execute this command in regular CI.
 
 ## Commands
 
 ```bash
-npm run typecheck
-npm run test:smoke
-npm run test:ui
+npm run check                    # PR gate: format, lint, types, unit, discovery
+npm run unit                     # deterministic framework unit tests
+npm run unit:coverage            # enforced 80/75 framework coverage thresholds
+npm run test:smoke               # Chromium deployment signal
 npm run test:api
+npm run test:ui
 npm run test:integration
-npm test
+npm run test:known-defects          # expected product failures in a separate lane
+npm test                         # complete Chromium suite
+npm run test:cross-browser-smoke # Chromium, Firefox, WebKit
+npm run artifacts:scan           # reject reports containing configured secrets
 ```
 
-Run by Playwright tag when you need the same filtering used by CI:
+Functional and smoke runs never retry because actor setup mutates the shared environment. Traces are disabled so authorization headers cannot be retained in uploaded trace archives. Failure screenshots and videos remain enabled and reports are scanned for configured secret values before upload.
 
-```bash
-npx playwright test --grep @smoke
-npx playwright test --grep @api
-npx playwright test --grep @ui
-npx playwright test --grep @integration
-```
+## Credential and actor model
 
-Recommended pre-commit check:
+- `X-Access-Key` identifies the vacancy application / QA environment and is shared by the suite.
+- Issued admin credentials create a worker-scoped, read-only admin session.
+- A purpose-specific owner and secondary resource actor are worker-scoped and reused only by todo/tag/RBAC scenarios; guarded cleanup runs before and after each test.
+- A purpose-specific analytics actor is worker-scoped and reused only by analytics integration scenarios; guarded resource cleanup runs before and after each test.
+- Isolated actors remain limited to auth and profile scenarios that mutate credentials or profile state across different contracts.
+- Authenticated smoke creates one immutable user per browser project and run.
 
-```bash
-npm run typecheck
-npm run test:smoke
-```
+Because the product has no account-delete endpoint, the current commands leave these marked QA accounts behind (todos and tags are still cleaned):
 
-Use headed/debug modes when needed:
+| Command                            | Accounts left per run |
+| ---------------------------------- | --------------------: |
+| `npm run test:smoke`               |                     1 |
+| `npm run test:cross-browser-smoke` |                     3 |
+| `npm run test:api`                 |                     6 |
+| `npm run test:ui`                  |                     4 |
+| `npm run test:integration`         |                     3 |
+| `npm test`                         |                    14 |
+| `npm run test:known-defects`       |                     2 |
 
-```bash
-npm run test:headed
-npm run test:ui-mode
-```
+These counts match the present test inventory: ownership scenarios account for their secondary actors, registration scenarios include users created directly through UI/API, and CRUD integration scenarios share one guarded worker actor.
 
-## Secrets
+The access key is never generated by CI. The current key is intentionally retained, although the former context-wide header configuration may have exposed it to third-party asset hosts. Rotation remains manual: submit the vacancy form once, save every issued value immediately, update `.env` and the protected GitHub Environment `qa`, then invalidate the previous credentials if supported.
 
-Local secrets are read from `.env` by default and must not be committed. CI can provide the same values through environment variables:
+## Test lifecycle
 
-- `BASE_URL` (optional, defaults to the recruitment QA app)
-- `ACCESS_KEY`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `ANALYTICS_BASIC_USER`
-- `ANALYTICS_BASIC_PASSWORD`
+1. A fixture selects the guarded worker actor or creates a uniquely marked isolated user and logs in through `AuthApi`.
+2. API services or a browser context receive the typed session.
+3. The test performs one risk-focused scenario.
+4. Teardown re-reads the profile, verifies the exact marked actor, then repeatedly deletes the first todo page until empty and deletes tags only after todo cleanup succeeds.
+5. Cleanup failure fails an otherwise successful test or is attached to the original failure.
 
-`ENV_PATH` can override the local `.env` path. Legacy `sicret.json` is still supported as a fallback for migration, but new runs should use `.env`.
+`429` is never retried for functional actions. Actor setup may retry once only for a valid `Retry-After` that fits its 30-second total budget; a longer server delay fails fast. Cleanup has its own 30-second total budget and retries only idempotent todo/tag DELETE operations. It never reruns the test action, never loops forever, and never starts tag deletion after an incomplete todo cleanup.
 
-`passEmail`, `email`, and `passAp` are no longer required. Smoke auth state is generated by registering a temporary user through API.
+Negative login status is verified against the real API only where the contract or analytics scenario requires it. UI error-rendering and admin-panel rejection use a browser-level API stub, so browser runs test frontend responsibility without consuming the shared environment's failed-login quota.
 
-## Configuration
+The user UI logout scenario calls the real endpoint and verifies local session removal, login redirect, and rejection on a subsequent dashboard visit. Bearer-token invalidation is exercised separately in the API known-defect scenario.
 
-Application URL configuration is centralized in `config/appConfig.js`.
+## CI and review
 
-- Default URL lives in `DEFAULT_BASE_URL`.
-- `BASE_URL` can override the target for local runs and CI.
-- The same helper is used by `playwright.config.ts`, `global-setup.ts`, fixtures, raw `fetch` API tests, and the vacancy bootstrap script.
+- Pull requests to `main` run a secret-free quality gate.
+- Pushes to `main` run sequential Chromium/Firefox/WebKit smoke. Full mutation runs are manual or `qa-environment-deployed` only; there is no nightly schedule.
+- QA credentials belong to the protected GitHub Environment `qa`.
+- The shared environment uses one worker, one shard, and zero Playwright retries.
+- Branch protection must require the quality job, one approval, and dismissal of stale approvals.
 
-## Test Plan
+Before submission the repository must be public. At the time of this refactor the unauthenticated GitHub URL returned `404`.
 
-Detailed coverage, test strategy, architecture notes, and planned improvements are documented in `TEST_PLAN.md`.
+## Deliberate scope boundaries
 
-## CI
-
-The GitHub Actions workflow can be started manually with two inputs: full name and test tag. It creates a fresh vacancy application, writes runtime `.env`, and then runs only the selected tag.
-
-Available workflow tag choices:
-
-- `all` - run the full suite.
-- `smoke` - run `@smoke`.
-- `api` - run `@api`.
-- `ui` - run `@ui`.
-- `integration` - run `@integration`.
-
-Required GitHub Secrets:
-
-- `ANALYTICS_BASIC_USER`
-- `ANALYTICS_BASIC_PASSWORD`
-
-## Stability Notes
-
-- Shared auth state is generated in `global-setup.ts` and used only for smoke/read-only flows.
-- The suite uses a hybrid data strategy. Lightweight scenarios can create unique users or generated entities, while heavier authenticated flows may reuse cached auth state to reduce pressure on registration/login endpoints.
-- Mutating tests still generate unique todo, tag, email, and profile values where possible, so assertions do not depend on static data.
-- Analytics integration tests poll `/api/analytics/events` and match only events created by the current generated user/email.
-- The target app has auth/rate-limit sensitivity, so tests run sequentially with `workers: 1`.
-- Browser requests receive `X-Access-Key` through Playwright `extraHTTPHeaders`.
-- Traces, screenshots, and videos are retained on failure.
+The suite covers functional ownership but is not a penetration or load test. XSS, MIME spoofing, oversized or malformed payload probes, accessibility audits, responsive and visual baselines, and load testing are intentionally excluded. Undocumented client analytics POST payloads remain backlog rather than an invented contract.

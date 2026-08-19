@@ -1,44 +1,47 @@
 import { test, expect } from '@fixtures';
-import { uniqueEmail } from '@utils/testData';
-import { ProfilePage } from '@pages/ProfilePage';
+import { createRegistrationData, createTempAvatar, removeTempFile, testRunId } from '@src/test-support/testData';
 
-test.describe('UI: registration', { tag: ['@ui'] }, () => {
-  test('unique user registers through UI and lands on dashboard', async ({ registerPage, page }) => {
-    const user = {
-      name: 'UI Register User',
-      email: uniqueEmail('ui-register'),
-      gender: 'male',
-      password: 'TestPass!123',
-      analyticsConsent: true,
-    } as const;
-
-    await registerPage.register(user);
-
-    await expect(page).toHaveURL(/dashboard\.html/);
-
-    const profilePage = new ProfilePage(page);
-    await profilePage.goto();
-
-    await expect(profilePage.nameInput).toHaveValue(user.name);
-    await expect(profilePage.emailInput).toHaveValue(user.email);
-    await expect(profilePage.emailInput).not.toBeEditable();
-    await expect(profilePage.genderMaleRadio).toBeChecked();
-    await expect(profilePage.analyticsConsentCheckbox).toBeChecked();
+test.describe('Registration UI', { tag: '@ui' }, () => {
+  test('registers a unique user and opens dashboard', async ({ registerPage, page }, testInfo) => {
+    const user = createRegistrationData({
+      runId: testRunId(),
+      project: testInfo.project.name,
+      worker: testInfo.workerIndex,
+      testId: testInfo.testId.slice(-10),
+    });
+    const response = await registerPage.register({ ...user, analyticsConsent: true });
+    expect(response.ok()).toBe(true);
+    await expect(page).toHaveURL(/dashboard\.html/u);
   });
 
-  test('unchecked analytics consent prevents registration submission', async ({ registerPage, page }) => {
-    await registerPage.nameInput.fill('No Consent User');
-    await registerPage.emailInput.fill(uniqueEmail('no-consent'));
-    await registerPage.passwordInput.fill('TestPass!123');
-    await registerPage.submitButton.click();
-    const validationMessage = await registerPage.analyticsConsentCheckbox.evaluate(element => {
-      if (!(element instanceof HTMLInputElement)) {
-        throw new Error('Expected analytics consent control to be a checkbox input');
-      }
-
-      return element.validationMessage;
+  test('requires analytics consent before sending registration', async ({ registerPage, page }, testInfo) => {
+    const user = createRegistrationData({
+      runId: testRunId(),
+      project: testInfo.project.name,
+      worker: testInfo.workerIndex,
+      testId: `${testInfo.testId.slice(-10)}-consent`,
     });
-    await expect(page).toHaveURL(/register\.html/);
-    expect(validationMessage).toEqual('Please check this box if you want to proceed.');
+    await registerPage.completeForm({ ...user, analyticsConsent: false });
+    await registerPage.submit.click();
+    const validity = await registerPage.consentValidity();
+    expect(validity).toEqual({ valid: false, valueMissing: true });
+    await expect(page).toHaveURL(/register\.html/u);
+  });
+
+  test('registers with a valid photo and selected gender', async ({ registerPage, page }, testInfo) => {
+    const user = createRegistrationData({
+      runId: testRunId(),
+      project: testInfo.project.name,
+      worker: testInfo.workerIndex,
+      testId: `${testInfo.testId.slice(-10)}-photo`,
+    });
+    const photo = createTempAvatar();
+    try {
+      const response = await registerPage.register({ ...user, gender: '1', analyticsConsent: true, photo });
+      expect(response.ok()).toBe(true);
+      await expect(page).toHaveURL(/dashboard\.html/u);
+    } finally {
+      removeTempFile(photo);
+    }
   });
 });

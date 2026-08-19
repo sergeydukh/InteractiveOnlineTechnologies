@@ -1,0 +1,9 @@
+node_modules/
+.auth/
+.env
+coverage/
+dist/
+playwright-report/
+test-results/
+package-lock.json
+TZ.txt
