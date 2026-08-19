@@ -44,7 +44,7 @@ test.describe('Profile API', { tag: '@api' }, () => {
     expect(result).toMatchObject({ ok: false, status: 400 });
   });
 
-  test('uploads and removes a valid avatar', async ({ api, isolatedActor: actor }) => {
+  test('uploads and removes a valid avatar', async ({ api, secondaryResourceActor: actor }) => {
     const uploaded = await api.profile.uploadPhoto(actor.session, validPngUpload('profile-avatar.png'));
     expectSuccess(uploaded, 200);
     expect(uploaded.data.user.photo).toBeTruthy();

@@ -2,7 +2,7 @@ import { test, expect } from '@fixtures';
 import { expectSuccess } from '@src/test-support/apiAssertions';
 
 test.describe('Profile UI and API integration', { tag: '@integration' }, () => {
-  test('persists editable fields and keeps email read-only', async ({ api, isolatedActor: actor, profilePage }) => {
+  test('persists editable fields and keeps email read-only', async ({ api, resourceActor: actor, profilePage }) => {
     const name = `Integrated ${Date.now()}`;
     await expect(profilePage.email).toHaveValue(actor.user.email);
     await expect(profilePage.email).not.toBeEditable();

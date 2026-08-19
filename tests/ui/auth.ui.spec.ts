@@ -12,7 +12,7 @@ test.describe('Authentication UI', { tag: '@ui' }, () => {
     await expect(page).toHaveURL(/index\.html/u);
   });
 
-  test('logs in and logs out through the browser', async ({ isolatedActor: actor, loginPage, page }) => {
+  test('logs in and logs out through the browser', async ({ resourceActor: actor, loginPage, page }) => {
     expect((await loginPage.login(actor.user.email, actor.user.password)).ok()).toBe(true);
     await expect(page).toHaveURL(/dashboard\.html/u);
 

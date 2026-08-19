@@ -37,8 +37,8 @@ export const pagesTest = browserTest.extend<PageFixtures>({
     }
   },
 
-  profilePage: async ({ appContextFactory, isolatedActor }, use) => {
-    const context = await appContextFactory.create(isolatedActor.session);
+  profilePage: async ({ appContextFactory, resourceActor }, use) => {
+    const context = await appContextFactory.create(resourceActor.session);
     try {
       const model = new ProfilePage(await context.newPage());
       await model.open();

@@ -67,7 +67,6 @@ async function useSharedActor(
   use: (actor: TestActor) => Promise<void>,
   testInfo: TestInfo,
 ): Promise<void> {
-  assertClean(await new ActorCleaner(api).clean(actor), 'Shared actor pre-test cleanup');
   try {
     await use(actor);
   } finally {
@@ -94,10 +93,6 @@ async function handleCleanup(report: CleanupReport, testInfo: TestInfo): Promise
   const details = report.errors.map((error) => error.message).join('\n');
   if (testInfo.status === testInfo.expectedStatus) throw new AggregateError(report.errors, details);
   await testInfo.attach('cleanup-errors.txt', { body: details, contentType: 'text/plain' });
-}
-
-function assertClean(report: CleanupReport, operation: string): void {
-  if (report.errors.length > 0) throw new AggregateError(report.errors, operation);
 }
 
 function identityFor(testInfo: TestInfo, suffix: string): TestIdentity {

@@ -72,15 +72,19 @@ jobs:
           if [[ -z "$suite" && "${{ github.event_name }}" == "repository_dispatch" ]]; then suite="all"; fi
           if [[ -z "$suite" ]]; then suite="smoke"; fi
           case "$suite" in
-            api) browsers="none" ;;
-            smoke) browsers="cross-browser" ;;
-            ui|integration|known-defects|all) browsers="chromium" ;;
+            api) browsers="none"; rate_limit_budget=0 ;;
+            smoke) browsers="cross-browser"; rate_limit_budget=0 ;;
+            ui|integration|known-defects) browsers="chromium"; rate_limit_budget=0 ;;
+            all) browsers="chromium"; rate_limit_budget=34 ;;
             *) exit 2 ;;
           esac
           echo "value=$suite" >> "$GITHUB_OUTPUT"
           echo "browsers=$browsers" >> "$GITHUB_OUTPUT"
+          echo "rate-limit-budget=$rate_limit_budget" >> "$GITHUB_OUTPUT"
       - name: Check QA rate limit before browser installation
         shell: bash
+        env:
+          REQUIRED_RATE_LIMIT_BUDGET: ${{ steps.suite.outputs.rate-limit-budget }}
         run: |
           node --input-type=module <<'NODE'
           const baseUrl = (process.env.BASE_URL || 'https://qa-a.recruitment.mediamarslab.com').replace(/\/+$/, '');
@@ -98,7 +102,17 @@ jobs:
             console.error(`::error title=QA preflight failed::Admin login returned HTTP ${response.status}.`);
             process.exit(1);
           }
-          console.log('QA preflight passed.');
+          const required = Number(process.env.REQUIRED_RATE_LIMIT_BUDGET || 0);
+          const remaining = Number(response.headers.get('ratelimit-remaining'));
+          const reset = response.headers.get('ratelimit-reset') || 'unknown';
+          if (required > 0 && (!Number.isFinite(remaining) || remaining < required)) {
+            console.error(
+              `::error title=Insufficient QA rate-limit budget::The all suite needs ${required} available requests, ` +
+                `but QA reports ${Number.isFinite(remaining) ? remaining : 'unknown'}. Rerun after ${reset} seconds.`,
+            );
+            process.exit(1);
+          }
+          console.log(`QA preflight passed (${Number.isFinite(remaining) ? remaining : 'unknown'} requests remaining).`);
           NODE
       - name: Cache Playwright browsers
         if: steps.suite.outputs.browsers != 'none'

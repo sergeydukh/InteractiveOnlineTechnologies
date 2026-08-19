@@ -42,8 +42,8 @@
 
 ## Data and failure policy
 
-- Resource-only CRUD and ownership tests use purpose-specific worker-scoped owner and secondary actors that are guarded and cleaned both before and after every test.
-- Auth and profile mutations receive isolated actors with run/project/worker/test metadata; analytics integration reuses a purpose-specific worker actor, and ownership checks use the purpose-specific resource actor pair.
+- Resource-only CRUD and ownership tests use freshly provisioned worker-scoped owner and secondary actors. They are cleaned after every test; cleanup failure restarts the worker before another test can reuse state.
+- Password-contract mutations receive isolated actors with run/project/worker/test metadata. Compatible UI/profile scenarios, analytics integration, and ownership checks reuse separate purpose-specific worker actors.
 - Read-only smoke actor and admin session are worker-scoped and immutable. Smoke intentionally leaves one account per browser project/run.
 - Teardown removes todos before tags; accounts and analytics events cannot be deleted.
 - Teardown first verifies the exact actor profile and refuses deletion for an unmarked or mismatched user.
