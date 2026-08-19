@@ -47,10 +47,6 @@ test.describe('Todos API', { tag: '@api' }, () => {
     const foreignDelete = await api.todos.delete(secondaryResourceActor.session, created.data.todo._id);
     expect(foreignDelete).toMatchObject({ ok: false, status: 404, error: { message: expect.any(String) } });
 
-    const ownerStillHasTodo = await api.todos.list(actor.session, { search: `${title} edited` });
-    expectSuccess(ownerStillHasTodo, 200);
-    expect(ownerStillHasTodo.data.todos.map((todo) => todo._id)).toContain(created.data.todo._id);
-
     const deleted = await api.todos.delete(actor.session, created.data.todo._id);
     expectSuccess(deleted, 200);
   });

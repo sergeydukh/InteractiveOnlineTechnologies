@@ -62,7 +62,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
       - name: Select suite
         id: suite
         shell: bash
@@ -72,8 +71,49 @@ jobs:
           suite="$REQUESTED_SUITE"
           if [[ -z "$suite" && "${{ github.event_name }}" == "repository_dispatch" ]]; then suite="all"; fi
           if [[ -z "$suite" ]]; then suite="smoke"; fi
-          case "$suite" in smoke|api|ui|integration|known-defects|all) ;; *) exit 2 ;; esac
+          case "$suite" in
+            api) browsers="none" ;;
+            smoke) browsers="cross-browser" ;;
+            ui|integration|known-defects|all) browsers="chromium" ;;
+            *) exit 2 ;;
+          esac
           echo "value=$suite" >> "$GITHUB_OUTPUT"
+          echo "browsers=$browsers" >> "$GITHUB_OUTPUT"
+      - name: Check QA rate limit before browser installation
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const baseUrl = (process.env.BASE_URL || 'https://qa-a.recruitment.mediamarslab.com').replace(/\/+$/, '');
+          const response = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-access-key': process.env.ACCESS_KEY },
+            body: JSON.stringify({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD }),
+          });
+          if (response.status === 429) {
+            const retryAfter = response.headers.get('retry-after') || 'unknown';
+            console.error(`::error title=QA rate limit active::Retry after ${retryAfter} seconds, then rerun this workflow.`);
+            process.exit(1);
+          }
+          if (!response.ok) {
+            console.error(`::error title=QA preflight failed::Admin login returned HTTP ${response.status}.`);
+            process.exit(1);
+          }
+          console.log('QA preflight passed.');
+          NODE
+      - name: Cache Playwright browsers
+        if: steps.suite.outputs.browsers != 'none'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.suite.outputs.browsers }}-${{ hashFiles('package-lock.json') }}
+      - name: Install required Playwright browsers
+        shell: bash
+        run: |
+          case "${{ steps.suite.outputs.browsers }}" in
+            none) ;;
+            chromium) npx playwright install --with-deps chromium ;;
+            cross-browser) npx playwright install --with-deps chromium firefox webkit ;;
+          esac
       - name: Run remote tests
         shell: bash
         run: |
