@@ -141,6 +141,35 @@ The `all` target runs API + Chromium smoke + UI first, then admin/analytics, pro
 - The shared environment uses one worker, one shard, and zero Playwright retries.
 - Branch protection must require the quality job, one approval, and dismissal of stale approvals.
 
+### Manual GitHub Actions run
+
+1. Open the repository's **Actions** tab and select **Remote E2E**.
+2. Select **Run workflow**.
+3. Choose the branch whose code must be tested.
+4. Select the suite:
+   - `smoke` — six critical scenarios in Chromium, Firefox and WebKit;
+   - `api` — API contracts, authorization, RBAC and resources;
+   - `ui` — Chromium browser behaviour;
+   - `integration` — seven scenarios split into three sequential groups;
+   - `known-defects` — three expected product failures;
+   - `all` — the complete 35-scenario regression.
+5. Keep the protected environment set to `qa` and select **Run workflow**.
+
+The selected branch must contain the workflow, and the `qa` environment must contain all credentials listed under [Configuration](#configuration). Use `smoke` for a quick deployment signal and `all` only when a complete remote regression is required.
+
+### CI/CD boundary and extension point
+
+This repository implements CI and post-deployment verification, but it does not deploy the product. `Framework checks` and `Quality gate` validate framework changes, while `Remote E2E` validates the already deployed QA environment. Product build, deployment, rollback and environment provisioning remain outside this repository.
+
+The workflow already contains two integration points for a future CD pipeline:
+
+- `workflow_call` allows another GitHub Actions workflow to reuse `Remote E2E` with an explicit suite, environment and secrets;
+- `repository_dispatch` listens for `qa-environment-deployed`. After a successful external QA deployment, a CD system can send this event with `deployment_sha`; the workflow then runs `all` and includes that revision in `TEST_RUN_ID`.
+
+Until an external deployment pipeline is connected, `workflow_dispatch` is the manual fallback. Receiving `qa-environment-deployed` is not a deployment itself—it is only the handoff from CD to post-deployment testing.
+
+Automated dependency updates are temporarily disabled, so dependency upgrades are currently reviewed and applied manually. They can be restored later with a controlled `.github/dependabot.yml`, preferably grouping compatible minor and patch updates while keeping major upgrades separate.
+
 ## Deliberate scope boundaries
 
 The suite covers functional ownership but is not a penetration or load test. XSS, MIME spoofing, oversized or malformed payload probes, accessibility audits, responsive and visual baselines, and load testing are intentionally excluded. Undocumented client analytics POST payloads remain backlog rather than an invented contract.
