@@ -67,6 +67,10 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.runtime.outputs.browsers }}-${{ hashFiles('package-lock.json') }}
+    - name: Install WebKit runtime library
+      if: steps.runtime.outputs.browsers == 'cross-browser'
+      shell: bash
+      run: sudo apt-get install --yes --no-install-recommends libwoff1
     - name: Install required Playwright browsers
       if: steps.runtime.outputs.browsers != 'none' && steps.browser-cache.outputs.cache-hit != 'true'
       shell: bash
