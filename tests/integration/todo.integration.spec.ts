@@ -46,15 +46,19 @@ test.describe('Todo UI and API integration', { tag: '@integration' }, () => {
     await expect(dashboardPage.tags.list).not.toContainText(`#${tagName}`);
   });
 
-  test('paginates a list larger than the default page size', async ({ api, resourceActor: actor, dashboardPage }) => {
-    for (let index = 0; index < 6; index += 1) {
-      expectSuccess(await api.todos.create(actor.session, { title: `page-${index}-${Date.now()}` }), 201);
-    }
-    await dashboardPage.page.reload();
-    await expect(dashboardPage.todos.pageInfo).toContainText('Страница 1 из 2');
-    expect((await dashboardPage.todos.goToNextPage()).ok()).toBe(true);
-    await expect(dashboardPage.todos.pageInfo).toContainText('Страница 2 из 2');
-    expect((await dashboardPage.todos.goToPreviousPage()).ok()).toBe(true);
-    await expect(dashboardPage.todos.pageInfo).toContainText('Страница 1 из 2');
-  });
+  test(
+    'paginates a list larger than the default page size',
+    { tag: '@pagination' },
+    async ({ api, resourceActor: actor, dashboardPage }) => {
+      for (let index = 0; index < 6; index += 1) {
+        expectSuccess(await api.todos.create(actor.session, { title: `page-${index}-${Date.now()}` }), 201);
+      }
+      await dashboardPage.page.reload();
+      await expect(dashboardPage.todos.pageInfo).toContainText('Страница 1 из 2');
+      expect((await dashboardPage.todos.goToNextPage()).ok()).toBe(true);
+      await expect(dashboardPage.todos.pageInfo).toContainText('Страница 2 из 2');
+      expect((await dashboardPage.todos.goToPreviousPage()).ok()).toBe(true);
+      await expect(dashboardPage.todos.pageInfo).toContainText('Страница 1 из 2');
+    },
+  );
 });
