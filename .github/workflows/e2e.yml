@@ -72,7 +72,7 @@ jobs:
 
   selected-suite:
     needs: resolve
-    if: needs.resolve.outputs.suite != 'all'
+    if: needs.resolve.outputs.suite != 'all' && needs.resolve.outputs.suite != 'integration'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: ${{ needs.resolve.outputs.environment }}
@@ -110,9 +110,14 @@ jobs:
           suite: core
           cross_browser_smoke: false
 
-  all-integration:
+  integration-suites:
     needs: [resolve, all-core]
-    if: always() && needs.resolve.outputs.suite == 'all'
+    if: always() && (needs.resolve.outputs.suite == 'all' || needs.resolve.outputs.suite == 'integration')
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        suite: [integration-observability, integration-user-flows]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: ${{ needs.resolve.outputs.environment }}
@@ -122,10 +127,10 @@ jobs:
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       ANALYTICS_BASIC_USER: ${{ secrets.ANALYTICS_BASIC_USER }}
       ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
-      TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}-integration
+      TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}-${{ matrix.suite }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-e2e-suite
         with:
-          suite: integration
+          suite: ${{ matrix.suite }}
           cross_browser_smoke: false

@@ -39,6 +39,23 @@ export class AnalyticsProbe {
     return true;
   }
 
+  async observeNoAdditional(
+    predicate: (event: AnalyticsEvent) => boolean,
+    action: () => Promise<void>,
+    observationMs = 3_000,
+    intervalMs = 500,
+  ): Promise<boolean> {
+    const baseline = requireSuccess(await this.analytics.getEvents(), 'Read analytics events').filter(predicate).length;
+    await action();
+    const deadline = Date.now() + observationMs;
+    do {
+      const events = requireSuccess(await this.analytics.getEvents(), 'Read analytics events');
+      if (events.filter(predicate).length > baseline) return false;
+      await this.delay(Math.min(intervalMs, Math.max(deadline - Date.now(), 0)));
+    } while (Date.now() < deadline);
+    return true;
+  }
+
   async waitForAll(
     predicates: ReadonlyArray<(event: AnalyticsEvent) => boolean>,
     timeoutMs = 20_000,

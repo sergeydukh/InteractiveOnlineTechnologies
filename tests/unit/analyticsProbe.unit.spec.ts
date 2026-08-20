@@ -41,4 +41,25 @@ describe('AnalyticsProbe', () => {
     await expect(probe.observeAbsence((event) => event.type === 'todoDelete', 0, 0)).resolves.toBe(true);
     expect(getEvents).toHaveBeenCalledTimes(1);
   });
+
+  it('observes no additional matching event relative to a pre-action baseline', async () => {
+    const getEvents = vi.fn().mockResolvedValue({ ok: true, status: 200, data: [todoEvent] });
+    const action = vi.fn().mockResolvedValue(undefined);
+    const probe = new AnalyticsProbe({ getEvents } as unknown as AnalyticsApi, vi.fn());
+
+    await expect(probe.observeNoAdditional((event) => event.type === 'todoCreate', action, 0, 0)).resolves.toBe(true);
+    expect(action).toHaveBeenCalledOnce();
+    expect(getEvents).toHaveBeenCalledTimes(2);
+  });
+
+  it('detects a matching event added after the observed action', async () => {
+    const laterTodoEvent: AnalyticsEvent = { ...todoEvent, timestamp: '2026-08-18T10:02:00.000Z' };
+    const getEvents = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, data: [todoEvent] })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: [todoEvent, laterTodoEvent] });
+    const probe = new AnalyticsProbe({ getEvents } as unknown as AnalyticsApi, vi.fn());
+
+    await expect(probe.observeNoAdditional((event) => event.type === 'todoCreate', vi.fn(), 0, 0)).resolves.toBe(false);
+  });
 });

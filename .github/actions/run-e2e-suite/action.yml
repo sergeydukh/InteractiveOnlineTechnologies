@@ -35,7 +35,7 @@ runs:
               browsers="chromium"
             fi
             ;;
-          core|ui|integration|known-defects) browsers="chromium" ;;
+          core|ui|integration-observability|integration-user-flows|known-defects) browsers="chromium" ;;
           *) exit 2 ;;
         esac
         echo "browsers=$browsers" >> "$GITHUB_OUTPUT"
@@ -91,7 +91,8 @@ runs:
           api) npm run test:api ;;
           core) npm run test:core ;;
           ui) npm run test:ui ;;
-          integration) npm run test:integration ;;
+          integration-observability) npm run test:integration:observability ;;
+          integration-user-flows) npm run test:integration:user-flows ;;
           known-defects) npm run test:known-defects ;;
         esac
     - name: Scan reports for configured secrets

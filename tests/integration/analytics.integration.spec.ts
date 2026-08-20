@@ -95,9 +95,13 @@ test.describe('Analytics consent integration', { tag: '@integration' }, () => {
     await probe.waitFor(
       after('analyticsConsentChange', actor.user.email, consentDisabledAt, (event) => event.analyticsConsent === false),
     );
-    const disabledMutationAt = beforeAction();
-    expectSuccess(await api.todos.create(actor.session, { title: `analytics-off-${disabledMutationAt}` }), 201);
-    const remainedAbsent = await probe.observeAbsence(after('todoCreate', actor.user.email, disabledMutationAt), 5_000);
+    const remainedAbsent = await probe.observeNoAdditional(
+      (event) => event.type === 'todoCreate' && event.email === actor.user.email,
+      async () => {
+        expectSuccess(await api.todos.create(actor.session, { title: `analytics-off-${Date.now()}` }), 201);
+      },
+      5_000,
+    );
     expect(remainedAbsent).toBe(true);
 
     const consentEnabledAt = beforeAction();

@@ -10,6 +10,8 @@
     "test:ui": "playwright test --project=ui --grep-invert @known-defect",
     "test:api": "playwright test --project=api --grep-invert @known-defect",
     "test:integration": "playwright test --project=integration --grep-invert @known-defect",
+    "test:integration:observability": "playwright test tests/integration/admin.integration.spec.ts tests/integration/analytics.integration.spec.ts --project=integration --grep-invert @known-defect",
+    "test:integration:user-flows": "playwright test tests/integration/profile.integration.spec.ts tests/integration/todo.integration.spec.ts --project=integration --grep-invert @known-defect",
     "test:known-defects": "playwright test --project=api --project=ui --grep @known-defect",
     "test:headed": "playwright test --headed",
     "test:ui-mode": "playwright test --ui",
