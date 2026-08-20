@@ -115,7 +115,7 @@ The user UI logout scenario calls the real endpoint and verifies local session r
 ## CI and review
 
 - Pull requests to `main` run a secret-free quality gate.
-- Every push runs framework lint, TypeScript typechecking, and unit tests without remote QA credentials or browsers.
+- Every non-Dependabot push runs framework lint, TypeScript typechecking, and unit tests without remote QA credentials or browsers. Dependabot branches run the complete pull-request quality gate instead.
 - Pushes to `main` run sequential Chromium/Firefox/WebKit smoke. Full mutation runs are manual or `qa-environment-deployed` only; there is no nightly schedule.
 - The manual/deployment `all` target runs API + Chromium smoke + UI first, then admin/analytics, profile/todo lifecycle, and pagination integration groups serially on fresh hosted runners. Manual `integration` uses the same three groups. The shared QA environment never receives concurrent mutation suites.
 - QA credentials belong to the protected GitHub Environment `qa`.
