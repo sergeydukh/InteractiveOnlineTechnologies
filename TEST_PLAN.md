@@ -1,4 +1,20 @@
-# Risk-based test plan
+# MediaMarsLab recruitment app — risk-based test plan
+
+## Current scope
+
+The plan targets the current QA product at `https://qa-a.recruitment.mediamarslab.com`. It covers authentication, user profiles, todos, tags, administration and internal analytics through API, Chromium UI, cross-browser smoke and focused integration scenarios.
+
+Current automated inventory:
+
+| Layer       | Unique scenarios | Normal regression | Separate known-defect lane |
+| ----------- | ---------------: | ----------------: | -------------------------: |
+| Unit        |               36 |                36 |                          0 |
+| API         |               15 |                13 |                          2 |
+| Smoke       |                6 |                 6 |                          0 |
+| UI          |               10 |                 9 |                          1 |
+| Integration |                7 |                 7 |                          0 |
+
+The normal remote regression therefore contains 35 scenarios. Three expected product failures are excluded from it and run only through `npm run test:known-defects`. Cross-browser smoke repeats the six smoke scenarios in Chromium, Firefox and WebKit (18 browser executions).
 
 ## Product invariants
 
@@ -11,23 +27,23 @@
 
 ## Traceability
 
-| Risk                      | Automated scenario                                                      | Layer              | CI lane       |
-| ------------------------- | ----------------------------------------------------------------------- | ------------------ | ------------- |
-| Access-key bypass         | Missing and malformed key before credential evaluation                  | API                | remote API    |
-| Session bypass            | Missing bearer on profile, todos, tags, admin                           | API                | remote API    |
-| RBAC failure              | Admin succeeds; user receives 403; anonymous receives 401               | API/UI             | remote API/UI |
-| Broken registration/login | User role, photo, duplicate email, invalid credentials, logout, consent | API/UI             | remote API/UI |
-| Invisible auth failure    | API error must be rendered to the user                                  | UI known defect    | full          |
-| Todo data loss            | CRUD, search/status/tag filters, pagination, ownership, boundaries      | API/Integration    | full          |
-| Broken user flow          | UI create/complete/edit/delete, reload and pagination persisted         | Integration        | full          |
-| Tag corruption            | Palette, create/ensure/delete, search, assignment/detachment            | API/Integration    | full          |
-| Profile corruption        | Editable fields, readonly email, password transition, avatar            | API/UI/Integration | full          |
-| Analytics compliance      | Dual auth, all 11 event types, 24h window, consent stop/resume          | API/Integration    | full          |
-| Admin visibility          | Login/logout, search, pagination, todos/events and JSON modal           | API/Integration    | full          |
-| Browser compatibility     | Public, user and admin critical controls                                | Smoke              | main push     |
-| Secret containment        | Exact-origin API route policy and artifact scan                         | Unit/CI            | every lane    |
-| Credential side effects   | Vacancy form availability without application submission                | Smoke/manual       | deploy/manual |
-| Framework regression      | Config, transport auth, contracts, setup retry, cleanup, storage state  | Unit               | every PR      |
+| Risk                      | Automated scenario                                                             | Layer              | Execution target                  |
+| ------------------------- | ------------------------------------------------------------------------------ | ------------------ | --------------------------------- |
+| Access-key bypass         | Missing and malformed key before credential evaluation                         | API                | `api`, `all`                      |
+| Session bypass            | Missing bearer on profile, todos, tags and admin                               | API                | `api`, `all`                      |
+| RBAC failure              | Admin succeeds; user receives 403; anonymous receives 401                      | API/UI             | `api`, `ui`, `all`                |
+| Broken registration/login | User role, photo, duplicate email, invalid credentials, logout and consent     | API/UI             | `api`, `ui`, `all`                |
+| Invisible auth failure    | API error must be rendered to the user                                         | UI known defect    | `known-defects`                   |
+| Todo data loss            | CRUD, search/status/tag filters, pagination, ownership and boundaries          | API/Integration    | `api`, `integration`, `all`       |
+| Broken user flow          | UI create/complete/edit/delete, reload and pagination persisted                | Integration        | `integration`, `all`              |
+| Tag corruption            | Palette, create/ensure/delete, search, assignment and detachment               | API/Integration    | `api`, `integration`, `all`       |
+| Profile corruption        | Editable fields, immutable email, password transition and valid avatar         | API/UI/Integration | `api`, `ui`, `integration`, `all` |
+| Analytics compliance      | Dual auth, 11 lifecycle events, 24h window and consent stop/resume             | API/Integration    | `api`, `integration`, `all`       |
+| Admin visibility          | Login/logout, search, pagination, todos/events and JSON modal                  | API/Integration    | `api`, `integration`, `all`       |
+| Browser compatibility     | Critical public, user and admin controls in Chromium, Firefox and WebKit       | Smoke              | Main push, manual `smoke`         |
+| Secret containment        | Exact-origin API route policy plus report scan before remote artifact upload   | Unit/CI            | Push/PR checks, every remote run  |
+| Credential side effects   | Vacancy form availability without application submission                       | Smoke/manual       | Main push, `smoke`, `all`         |
+| Framework regression      | Config, transport auth, services, retry budgets, cleanup and artifact scanning | Unit               | Every push and PR                 |
 
 ## Layer rules
 
@@ -52,10 +68,23 @@
 - Guarded cleanup has a 30-second total budget and bounded todo passes. It may retry only idempotent cleanup reads and DELETE operations after explicit `429 + Retry-After`, stops before tags if todo cleanup is incomplete, and never repeats a test action.
 - Analytics presence uses bounded polling; absence uses a full bounded observation window.
 
+## Execution and CI model
+
+| Event                               | Automated scope                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| Push to any branch                  | Format-independent framework checks: lint, typecheck and 36 unit tests             |
+| Pull request to `main`              | Formatting, lint, typecheck, unit coverage and Playwright discovery; no QA secrets |
+| Push to `main`                      | 18 cross-browser smoke executions                                                  |
+| Manual `smoke`, `api` or `ui`       | Selected remote suite                                                              |
+| Manual `integration`                | Observability (4), user flows (2), then pagination (1), serially                   |
+| Manual or deployment-dispatch `all` | Core regression (28), then the same three serial integration groups (7)            |
+| Manual `known-defects`              | Three isolated expected failures                                                   |
+
+All remote jobs use the protected `qa` environment, one worker, one shard and zero Playwright retries. Integration groups use fresh hosted runners with `max-parallel: 1` so mutation suites do not compete against the shared environment's request limits. Reports are scanned for configured secret values before upload.
+
 ## Manual checks
 
 - Vacancy application creates and reveals credentials once.
 - Configure the resulting credentials in GitHub Environment `qa`.
-- Rotation is manual. Retaining the current key is an accepted risk after the previous context-wide header configuration.
-- Make the repository public and verify the link in an unauthenticated browser.
-- Configure branch protection for `main` after the first successful quality workflow.
+- Rotate credentials manually and update local `.env` plus the protected GitHub Environment `qa` together.
+- Keep branch protection for `main` configured to require the quality job, one approval and dismissal of stale approvals.
