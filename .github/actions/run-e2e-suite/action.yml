@@ -67,10 +67,37 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.runtime.outputs.browsers }}-${{ hashFiles('package-lock.json') }}
-    - name: Install WebKit runtime library
+    - name: Install missing WebKit runtime libraries
       if: steps.runtime.outputs.browsers == 'cross-browser'
       shell: bash
-      run: sudo apt-get install --yes --no-install-recommends libwoff1
+      run: |
+        set +e
+        dependency_report="$(npx playwright install-deps --dry-run webkit 2>&1)"
+        dependency_status=$?
+        set -e
+        printf '%s\n' "$dependency_report"
+        if [[ $dependency_status -eq 0 ]]; then exit 0; fi
+        if [[ "$dependency_report" != *"Missing system dependencies"* ]]; then
+          echo "Unable to determine missing WebKit dependencies." >&2
+          exit "$dependency_status"
+        fi
+
+        missing_dependencies=()
+        reading_dependencies=false
+        while IFS= read -r line; do
+          if [[ "$line" == "Missing system dependencies ("* ]]; then
+            reading_dependencies=true
+          elif [[ "$reading_dependencies" == true && "$line" =~ ^[[:space:]]{2}([a-z0-9][a-z0-9+.-]*)$ ]]; then
+            missing_dependencies+=("${BASH_REMATCH[1]}")
+          fi
+        done <<< "$dependency_report"
+        if [[ ${#missing_dependencies[@]} -eq 0 ]]; then
+          echo "Playwright reported missing WebKit dependencies but none could be parsed." >&2
+          exit 1
+        fi
+
+        sudo apt-get install --yes --no-install-recommends "${missing_dependencies[@]}"
+        npx playwright install-deps --dry-run webkit
     - name: Install required Playwright browsers
       if: steps.runtime.outputs.browsers != 'none' && steps.browser-cache.outputs.cache-hit != 'true'
       shell: bash
