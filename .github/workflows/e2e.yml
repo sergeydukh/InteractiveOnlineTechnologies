@@ -84,7 +84,7 @@ jobs:
       ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
       TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}-${{ needs.resolve.outputs.suite }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/run-e2e-suite
         with:
           suite: ${{ needs.resolve.outputs.suite }}
@@ -104,7 +104,7 @@ jobs:
       ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
       TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}-core
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/run-e2e-suite
         with:
           suite: core
@@ -129,7 +129,7 @@ jobs:
       ANALYTICS_BASIC_PASSWORD: ${{ secrets.ANALYTICS_BASIC_PASSWORD }}
       TEST_RUN_ID: ${{ github.event.client_payload.deployment_sha || github.sha }}-${{ github.run_id }}-${{ matrix.suite }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/run-e2e-suite
         with:
           suite: ${{ matrix.suite }}
